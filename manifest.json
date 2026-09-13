@@ -2,7 +2,7 @@
   "name": "Agenda",
   "short_name": "Agenda",
   "description": "Agenda personal con recordatorios, deudas, suscripciones y clima",
-  "start_url": "./agenda.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#141414",
