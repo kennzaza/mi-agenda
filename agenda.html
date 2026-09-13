@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Agenda</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#141414">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#141414;
+    --panel:#1c1c1c;
+    --panel2:#232323;
+    --border:#2e2e2e;
+    --text:#e4e4e4;
+    --muted:#8a8a8a;
+    --accent:#5a5a5a;
+    --danger:#8a4b4b;
+    --warn:#8a7a4b;
+    --ok:#4b6a5a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    display:flex;
+    min-height:100vh;
+  }
+  #sidebar{
+    width:340px;
+    background:var(--panel);
+    border-right:1px solid var(--border);
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  h1{font-size:16px;font-weight:600;margin:0 0 4px 0;letter-spacing:.5px;color:#ccc;}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0 8px 0;}
+  #main{flex:1;padding:24px;overflow-y:auto;}
+
+  form{display:flex;flex-direction:column;gap:8px;background:var(--panel2);padding:14px;border-radius:8px;border:1px solid var(--border);}
+  label{font-size:11px;color:var(--muted);}
+  input,select{
+    background:#181818;
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:8px;
+    border-radius:6px;
+    font-size:13px;
+  }
+  input:focus,select:focus{outline:1px solid var(--accent);}
+  button{
+    background:#2a2a2a;
+    color:var(--text);
+    border:1px solid var(--border);
+    padding:9px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:13px;
+  }
+  button:hover{background:#333;}
+
+  #calHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  #calHeader button{padding:6px 10px;}
+  #calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .dow{text-align:center;font-size:11px;color:var(--muted);padding:4px 0;}
+  .day{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    min-height:74px;
+    padding:6px;
+    font-size:12px;
+    color:#bbb;
+    position:relative;
+    cursor:default;
+  }
+  .day.empty{background:transparent;border:none;}
+  .day.today{border-color:#666;}
+  .daynum{font-size:11px;color:var(--muted);}
+  .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin:2px 2px 0 0;}
+  .dot.reminder{background:var(--accent);}
+  .dot.subscription{background:var(--warn);}
+  .dot.debt{background:var(--danger);}
+  .dot.trial{background:var(--ok);}
+  .dot.memory{background:#6a8a9a;}
+
+  .day{cursor:pointer;}
+  .day.empty{cursor:default;}
+  .day:hover:not(.empty){border-color:#555;}
+
+  #modalOverlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.6);
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+  }
+  #modalOverlay.open{display:flex;}
+  #modalBox{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px;
+    width:380px;
+    max-width:90vw;
+  }
+  #modalBox h3{margin:0 0 4px 0;font-size:14px;color:#ddd;}
+  #modalBox .sub{font-size:11px;color:var(--muted);margin-bottom:12px;}
+  #modalBox textarea{
+    width:100%;
+    min-height:100px;
+    background:#181818;
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:10px;
+    font-size:13px;
+    font-family:inherit;
+    resize:vertical;
+  }
+  #modalActions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
+  #modalActions button{padding:8px 14px;}
+  #modalDelete{margin-right:auto;background:transparent;border:1px solid var(--border);color:#a77;}
+  #modalDelete:hover{background:#2a1c1c;}
+
+  #list{margin-top:26px;display:flex;flex-direction:column;gap:8px;}
+  .item{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+  }
+  .item.past{opacity:.45;}
+  .item .info{display:flex;flex-direction:column;gap:2px;}
+  .item .title{font-size:14px;color:#ddd;}
+  .item .meta{font-size:11px;color:var(--muted);}
+  .tag{font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--border);color:#ccc;white-space:nowrap;}
+  .tag.reminder{background:#2a2a2a;}
+  .tag.subscription{background:#33301f;}
+  .tag.debt{background:#332222;}
+  .tag.trial{background:#1f2e26;}
+  .del{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;}
+  .del:hover{color:#c77;}
+  .empty-msg{color:var(--muted);font-size:13px;padding:10px 0;}
+
+  .debtCard{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+  .debtCard .top{display:flex;justify-content:space-between;align-items:center;}
+  .debtCard .title{font-size:14px;color:#ddd;}
+  .debtCard .nums{font-size:11px;color:var(--muted);margin-top:4px;}
+  .debtCard .barBg{background:#181818;border-radius:6px;height:6px;margin-top:8px;overflow:hidden;}
+  .debtCard .barFill{background:#5a7a6a;height:100%;}
+  .debtCard .payBtn{padding:5px 10px;font-size:12px;}
+  .payHistory{margin-top:8px;font-size:11px;color:#888;display:flex;flex-direction:column;gap:2px;}
+  .paidOff{opacity:.5;}
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div>
+    <h1>Agenda</h1>
+    <div style="font-size:11px;color:var(--muted);">Recordatorios, suscripciones y deudas</div>
+  </div>
+
+  <form id="form">
+    <h2>Nuevo</h2>
+    <label>Título</label>
+    <input id="title" type="text" placeholder="Ej: Netflix, cuota tarjeta, turno médico" required>
+
+    <label>Tipo</label>
+    <select id="type">
+      <option value="reminder">Recordatorio</option>
+      <option value="subscription">Suscripción</option>
+      <option value="debt">Deuda</option>
+      <option value="trial">Período de prueba</option>
+    </select>
+
+    <label id="dateLabel">Fecha</label>
+    <input id="date" type="date" required>
+
+    <div id="amountField" style="display:none;">
+      <label>Monto total de la deuda</label>
+      <input id="amount" type="number" min="0" step="0.01" placeholder="Ej: 50000">
+    </div>
+
+    <label>Notas (opcional)</label>
+    <input id="notes" type="text" placeholder="Monto, detalle, etc.">
+
+    <button type="submit">Agregar</button>
+  </form>
+
+  <div>
+    <h2>Referencias</h2>
+    <div style="font-size:12px;display:flex;flex-direction:column;gap:4px;color:var(--muted);">
+      <div><span class="dot reminder"></span> Recordatorio</div>
+      <div><span class="dot subscription"></span> Suscripción</div>
+      <div><span class="dot debt"></span> Deuda</div>
+      <div><span class="dot trial"></span> Período de prueba</div>
+      <div><span class="dot memory"></span> Recuerdo del día</div>
+    </div>
+  </div>
+
+  <div id="weatherBox" style="margin-top:auto;">
+    <button id="notifBtn" type="button" style="margin-bottom:10px;">🔔 Activar notificaciones</button>
+    <div id="clock" style="font-size:26px;color:#ddd;text-align:center;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;letter-spacing:1px;">
+      --:--:--
+    </div>
+    <h2>Clima · Berazategui</h2>
+    <div id="weatherContent" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--muted);">
+      Cargando...
+    </div>
+    <div id="rainAlert" style="display:none;margin-top:8px;background:#2e2620;border:1px solid #4a3f2e;border-radius:8px;padding:10px 12px;font-size:12px;color:#d8c79a;">
+    </div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="calHeader">
+    <button id="prevMonth">‹</button>
+    <div id="monthLabel" style="font-size:14px;color:#ccc;"></div>
+    <button id="nextMonth">›</button>
+  </div>
+  <div id="calGrid"></div>
+
+  <div id="list">
+    <h2>Próximos</h2>
+    <div id="listItems"></div>
+  </div>
+
+  <div id="debtsSection" style="margin-top:30px;">
+    <h2>Deudas</h2>
+    <div id="debtsTotal" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+      <div style="font-size:11px;color:var(--muted);">Deuda total pendiente</div>
+      <div id="debtsTotalAmount" style="font-size:24px;color:#ddd;margin-top:2px;">$0</div>
+    </div>
+    <div id="debtsList" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<div id="modalOverlay">
+  <div id="modalBox">
+    <h3 id="modalTitle">Recuerdo del día</h3>
+    <div class="sub" id="modalSub"></div>
+    <textarea id="modalTextarea" placeholder="Escribí algo que pasó este día..."></textarea>
+    <div id="modalActions">
+      <button id="modalDelete" type="button">Borrar</button>
+      <button id="modalCancel" type="button">Cancelar</button>
+      <button id="modalSave" type="button">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="payModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:100;">
+  <div style="background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:20px;width:320px;max-width:90vw;">
+    <h3 style="margin:0 0 4px 0;font-size:14px;color:#ddd;">Registrar pago</h3>
+    <div id="payModalSub" style="font-size:11px;color:var(--muted);margin-bottom:12px;"></div>
+    <label style="font-size:11px;color:var(--muted);">Monto pagado</label>
+    <input id="payAmount" type="number" min="0" step="0.01" placeholder="Ej: 5000"
+      style="width:100%;background:#181818;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px;margin-top:4px;box-sizing:border-box;">
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px;">
+      <button id="payCancel" type="button" style="padding:8px 14px;">Cancelar</button>
+      <button id="payConfirm" type="button" style="padding:8px 14px;">Guardar pago</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = "agenda_items_v1";
+let items = [];
+try {
+  items = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+} catch(e) { items = []; }
+
+let viewDate = new Date();
+viewDate.setDate(1);
+
+const typeLabels = {
+  reminder: "Recordatorio",
+  subscription: "Suscripción",
+  debt: "Deuda",
+  trial: "Período de prueba"
+};
+
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
+function fmtDate(d){
+  const dt = new Date(d + "T00:00:00");
+  return dt.toLocaleDateString("es-AR", {day:"2-digit", month:"short", year:"numeric"});
+}
+
+document.getElementById("type").addEventListener("change", (e)=>{
+  document.getElementById("dateLabel").textContent =
+    e.target.value === "trial" ? "Fecha límite para cancelar" : "Fecha";
+  document.getElementById("amountField").style.display =
+    e.target.value === "debt" ? "block" : "none";
+});
+
+document.getElementById("form").addEventListener("submit", (e)=>{
+  e.preventDefault();
+  const title = document.getElementById("title").value.trim();
+  const type = document.getElementById("type").value;
+  const date = document.getElementById("date").value;
+  const notes = document.getElementById("notes").value.trim();
+  const amount = document.getElementById("amount").value;
+  if(!title || !date) return;
+
+  const newItem = { id: Date.now().toString(), title, type, date, notes };
+  if(type === "debt"){
+    newItem.amount = amount ? parseFloat(amount) : 0;
+    newItem.payments = [];
+  }
+  items.push(newItem);
+  save();
+  document.getElementById("form").reset();
+  document.getElementById("dateLabel").textContent = "Fecha";
+  document.getElementById("amountField").style.display = "none";
+  render();
+});
+
+function removeItem(id){
+  items = items.filter(i => i.id !== id);
+  save();
+  render();
+}
+
+function renderCalendar(){
+  const grid = document.getElementById("calGrid");
+  grid.innerHTML = "";
+  const dows = ["L","M","X","J","V","S","D"];
+  dows.forEach(d=>{
+    const el = document.createElement("div");
+    el.className = "dow";
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const label = viewDate.toLocaleDateString("es-AR", {month:"long", year:"numeric"});
+  document.getElementById("monthLabel").textContent = label.charAt(0).toUpperCase()+label.slice(1);
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  let startOffset = firstDay.getDay() - 1;
+  if(startOffset < 0) startOffset = 6;
+
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const todayStr = new Date().toISOString().slice(0,10);
+
+  for(let i=0;i<startOffset;i++){
+    const el = document.createElement("div");
+    el.className = "day empty";
+    grid.appendChild(el);
+  }
+
+  for(let day=1; day<=daysInMonth; day++){
+    const dateStr = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    const el = document.createElement("div");
+    el.className = "day" + (dateStr === todayStr ? " today" : "");
+    const dayItems = items.filter(i => i.date === dateStr);
+    const hasMemory = !!dayNotes[dateStr];
+    el.innerHTML = `<div class="daynum">${day}</div>` +
+      dayItems.map(i => `<span class="dot ${i.type}" title="${i.title}"></span>`).join("") +
+      (hasMemory ? `<span class="dot memory" title="Tiene recuerdo escrito"></span>` : "");
+    el.dataset.date = dateStr;
+    el.addEventListener("click", ()=> openDayModal(dateStr));
+    grid.appendChild(el);
+  }
+}
+
+function renderList(){
+  const container = document.getElementById("listItems");
+  container.innerHTML = "";
+  if(items.length === 0){
+    container.innerHTML = `<div class="empty-msg">No hay nada agendado todavía.</div>`;
+    return;
+  }
+  const sorted = [...items].sort((a,b)=> a.date.localeCompare(b.date));
+  const todayStr = new Date().toISOString().slice(0,10);
+
+  sorted.forEach(i=>{
+    const div = document.createElement("div");
+    div.className = "item" + (i.date < todayStr ? " past" : "");
+    let metaExtra = i.notes ? " · " + i.notes : "";
+    if(i.type === "debt" && i.amount){
+      const paid = (i.payments || []).reduce((s,p)=> s + p.amount, 0);
+      const remaining = Math.max(i.amount - paid, 0);
+      metaExtra += ` · Restante ${fmtMoney(remaining)}`;
+    }
+    div.innerHTML = `
+      <div class="info">
+        <div class="title">${i.title}</div>
+        <div class="meta">${fmtDate(i.date)}${metaExtra}</div>
+      </div>
+      <span class="tag ${i.type}">${typeLabels[i.type]}</span>
+      <button class="del" data-id="${i.id}">✕</button>
+    `;
+    container.appendChild(div);
+  });
+
+  container.querySelectorAll(".del").forEach(btn=>{
+    btn.addEventListener("click", ()=> removeItem(btn.dataset.id));
+  });
+}
+
+function render(){
+  renderCalendar();
+  renderList();
+  renderDebts();
+}
+
+function fmtMoney(n){
+  return "$" + n.toLocaleString("es-AR", {minimumFractionDigits:0, maximumFractionDigits:2});
+}
+
+function renderDebts(){
+  const debts = items.filter(i => i.type === "debt");
+  const container = document.getElementById("debtsList");
+  container.innerHTML = "";
+
+  let totalPending = 0;
+
+  if(debts.length === 0){
+    container.innerHTML = `<div class="empty-msg">No cargaste deudas todavía.</div>`;
+  }
+
+  debts.forEach(d=>{
+    const paid = (d.payments || []).reduce((s,p)=> s + p.amount, 0);
+    const total = d.amount || 0;
+    const remaining = Math.max(total - paid, 0);
+    totalPending += remaining;
+    const pct = total > 0 ? Math.min((paid/total)*100, 100) : 0;
+
+    const card = document.createElement("div");
+    card.className = "debtCard" + (remaining <= 0 && total > 0 ? " paidOff" : "");
+    card.innerHTML = `
+      <div class="top">
+        <div class="title">${d.title}${remaining<=0 && total>0 ? " ✓ saldada" : ""}</div>
+        <button class="payBtn" data-id="${d.id}" type="button">+ Pago</button>
+      </div>
+      <div class="nums">Total ${fmtMoney(total)} · Pagado ${fmtMoney(paid)} · Restante ${fmtMoney(remaining)}</div>
+      <div class="barBg"><div class="barFill" style="width:${pct}%;"></div></div>
+      ${(d.payments && d.payments.length) ? `<div class="payHistory">` +
+        d.payments.map(p => `<div>· ${fmtMoney(p.amount)} el ${fmtDate(p.date)}</div>`).join("") +
+        `</div>` : ""}
+    `;
+    container.appendChild(card);
+  });
+
+  document.getElementById("debtsTotalAmount").textContent = fmtMoney(totalPending);
+
+  container.querySelectorAll(".payBtn").forEach(btn=>{
+    btn.addEventListener("click", ()=> openPayModal(btn.dataset.id));
+  });
+}
+
+let currentPayDebtId = null;
+const payModalOverlay = document.getElementById("payModalOverlay");
+
+function openPayModal(debtId){
+  currentPayDebtId = debtId;
+  const debt = items.find(i => i.id === debtId);
+  document.getElementById("payModalSub").textContent = debt ? debt.title : "";
+  document.getElementById("payAmount").value = "";
+  payModalOverlay.style.display = "flex";
+  document.getElementById("payAmount").focus();
+}
+
+function closePayModal(){
+  payModalOverlay.style.display = "none";
+  currentPayDebtId = null;
+}
+
+document.getElementById("payCancel").addEventListener("click", closePayModal);
+
+document.getElementById("payConfirm").addEventListener("click", ()=>{
+  const amountVal = parseFloat(document.getElementById("payAmount").value);
+  if(!amountVal || amountVal <= 0) return;
+  const debt = items.find(i => i.id === currentPayDebtId);
+  if(!debt) return;
+  if(!debt.payments) debt.payments = [];
+  debt.payments.push({ amount: amountVal, date: new Date().toISOString().slice(0,10) });
+  save();
+  closePayModal();
+  renderDebts();
+});
+
+payModalOverlay.addEventListener("click", (e)=>{
+  if(e.target === payModalOverlay) closePayModal();
+});
+
+// --- Recuerdos del día ---
+const NOTES_KEY = "agenda_daynotes_v1";
+let dayNotes = {};
+try {
+  dayNotes = JSON.parse(localStorage.getItem(NOTES_KEY)) || {};
+} catch(e) { dayNotes = {}; }
+
+let currentModalDate = null;
+const modalOverlay = document.getElementById("modalOverlay");
+const modalTextarea = document.getElementById("modalTextarea");
+const modalSub = document.getElementById("modalSub");
+
+function openDayModal(dateStr){
+  currentModalDate = dateStr;
+  modalTextarea.value = dayNotes[dateStr] || "";
+  modalSub.textContent = fmtDate(dateStr);
+  modalOverlay.classList.add("open");
+  modalTextarea.focus();
+}
+
+function closeDayModal(){
+  modalOverlay.classList.remove("open");
+  currentModalDate = null;
+}
+
+document.getElementById("modalCancel").addEventListener("click", closeDayModal);
+
+document.getElementById("modalSave").addEventListener("click", ()=>{
+  const text = modalTextarea.value.trim();
+  if(text){
+    dayNotes[currentModalDate] = text;
+  } else {
+    delete dayNotes[currentModalDate];
+  }
+  localStorage.setItem(NOTES_KEY, JSON.stringify(dayNotes));
+  closeDayModal();
+  renderCalendar();
+});
+
+document.getElementById("modalDelete").addEventListener("click", ()=>{
+  delete dayNotes[currentModalDate];
+  localStorage.setItem(NOTES_KEY, JSON.stringify(dayNotes));
+  closeDayModal();
+  renderCalendar();
+});
+
+modalOverlay.addEventListener("click", (e)=>{
+  if(e.target === modalOverlay) closeDayModal();
+});
+
+document.getElementById("prevMonth").addEventListener("click", ()=>{
+  viewDate.setMonth(viewDate.getMonth()-1);
+  renderCalendar();
+});
+document.getElementById("nextMonth").addEventListener("click", ()=>{
+  viewDate.setMonth(viewDate.getMonth()+1);
+  renderCalendar();
+});
+
+render();
+
+// --- Clima (Berazategui, Buenos Aires) ---
+const WEATHER_LAT = -34.7636;
+const WEATHER_LON = -58.2119;
+
+const weatherCodes = {
+  0:"Despejado", 1:"Mayormente despejado", 2:"Parcialmente nublado", 3:"Nublado",
+  45:"Niebla", 48:"Niebla helada",
+  51:"Llovizna débil", 53:"Llovizna", 55:"Llovizna intensa",
+  61:"Lluvia débil", 63:"Lluvia", 65:"Lluvia intensa",
+  66:"Lluvia helada", 67:"Lluvia helada intensa",
+  71:"Nevada débil", 73:"Nevada", 75:"Nevada intensa",
+  80:"Chubascos débiles", 81:"Chubascos", 82:"Chubascos intensos",
+  95:"Tormenta", 96:"Tormenta con granizo", 99:"Tormenta con granizo fuerte"
+};
+
+async function loadWeather(){
+  const box = document.getElementById("weatherContent");
+  const alertBox = document.getElementById("rainAlert");
+  try{
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${WEATHER_LAT}&longitude=${WEATHER_LON}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=precipitation_probability,weather_code&timezone=America%2FArgentina%2FBuenos_Aires`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const c = data.current;
+    const desc = weatherCodes[c.weather_code] || "—";
+    box.innerHTML = `
+      <div style="font-size:22px;color:#ddd;">${Math.round(c.temperature_2m)}°C</div>
+      <div style="margin-top:2px;">${desc}</div>
+      <div style="margin-top:6px;color:#777;">
+        Sensación ${Math.round(c.apparent_temperature)}°C · Humedad ${c.relative_humidity_2m}% · Viento ${Math.round(c.wind_speed_10m)} km/h
+      </div>
+    `;
+
+    // Chequeo de lluvia en las próximas 12 horas
+    const times = data.hourly.time;
+    const probs = data.hourly.precipitation_probability;
+    const nowIdx = times.findIndex(t => new Date(t) >= new Date());
+    let maxProb = 0, maxHour = null;
+    for(let i = nowIdx; i < nowIdx + 12 && i < times.length; i++){
+      if(probs[i] > maxProb){ maxProb = probs[i]; maxHour = times[i]; }
+    }
+    if(maxProb >= 40){
+      const hourStr = new Date(maxHour).toLocaleTimeString("es-AR", {hour:"2-digit", minute:"2-digit"});
+      alertBox.style.display = "block";
+      alertBox.innerHTML = `⚠ Probabilidad de lluvia ${maxProb}% cerca de las ${hourStr}. Llevá paraguas.`;
+    } else {
+      alertBox.style.display = "none";
+    }
+  }catch(e){
+    box.innerHTML = "No se pudo cargar el clima (sin conexión a internet).";
+    alertBox.style.display = "none";
+  }
+}
+loadWeather();
+setInterval(loadWeather, 15 * 60 * 1000); // actualiza cada 15 min
+
+// --- Reloj en tiempo real ---
+function updateClock(){
+  const now = new Date();
+  document.getElementById("clock").textContent = now.toLocaleTimeString("es-AR", {hour12:false});
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// --- PWA: registro del service worker ---
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("service-worker.js").then(async (reg)=>{
+      // Intentamos background sync periódico (solo funciona en algunos Android/Chrome instalados)
+      try{
+        if("periodicSync" in reg){
+          const status = await navigator.permissions.query({name:"periodic-background-sync"});
+          if(status.state === "granted"){
+            await reg.periodicSync.register("check-agenda", { minInterval: 6 * 60 * 60 * 1000 });
+          }
+        }
+      }catch(e){ /* no soportado, seguimos sin esto */ }
+    }).catch(()=>{});
+  });
+
+  navigator.serviceWorker.addEventListener("message", (event)=>{
+    if(event.data && event.data.type === "CHECK_DUE") checkDueAndNotify();
+  });
+}
+
+// --- Notificaciones ---
+const notifBtn = document.getElementById("notifBtn");
+
+function updateNotifBtn(){
+  if(!("Notification" in window)){
+    notifBtn.textContent = "🔔 No soportado en este navegador";
+    notifBtn.disabled = true;
+    return;
+  }
+  if(Notification.permission === "granted"){
+    notifBtn.textContent = "🔔 Notificaciones activadas";
+  } else {
+    notifBtn.textContent = "🔔 Activar notificaciones";
+  }
+}
+updateNotifBtn();
+
+notifBtn.addEventListener("click", async ()=>{
+  if(!("Notification" in window)) return;
+  const perm = await Notification.requestPermission();
+  updateNotifBtn();
+  if(perm === "granted"){
+    checkDueAndNotify();
+  }
+});
+
+function showNotif(title, body){
+  if(Notification.permission !== "granted") return;
+  if(navigator.serviceWorker && navigator.serviceWorker.controller){
+    navigator.serviceWorker.ready.then(reg=>{
+      reg.showNotification(title, { body, icon: "icon-192.png", badge: "icon-192.png" });
+    });
+  } else {
+    new Notification(title, { body, icon: "icon-192.png" });
+  }
+}
+
+const NOTIF_LOG_KEY = "agenda_notif_log_v1";
+function alreadyNotifiedToday(key){
+  const log = JSON.parse(localStorage.getItem(NOTIF_LOG_KEY) || "{}");
+  const todayStr = new Date().toISOString().slice(0,10);
+  return log[key] === todayStr;
+}
+function markNotified(key){
+  const log = JSON.parse(localStorage.getItem(NOTIF_LOG_KEY) || "{}");
+  log[key] = new Date().toISOString().slice(0,10);
+  localStorage.setItem(NOTIF_LOG_KEY, JSON.stringify(log));
+}
+
+function checkDueAndNotify(){
+  if(Notification.permission !== "granted") return;
+  const todayStr = new Date().toISOString().slice(0,10);
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  const tomorrowStr = tomorrow.toISOString().slice(0,10);
+
+  items.forEach(i=>{
+    if(i.date === todayStr && !alreadyNotifiedToday("today-"+i.id)){
+      showNotif("Hoy: " + i.title, typeLabels[i.type] + (i.notes ? " · " + i.notes : ""));
+      markNotified("today-"+i.id);
+    } else if(i.date === tomorrowStr && !alreadyNotifiedToday("tomorrow-"+i.id)){
+      showNotif("Mañana: " + i.title, typeLabels[i.type]);
+      markNotified("tomorrow-"+i.id);
+    }
+  });
+}
+
+// Revisamos al abrir la app y cada vez que vuelve a primer plano
+checkDueAndNotify();
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible") checkDueAndNotify();
+});
+setInterval(checkDueAndNotify, 30 * 60 * 1000); // cada 30 min mientras esté abierta
+</script>
+</body>
+</html>
