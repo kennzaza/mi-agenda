@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Agenda</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#141414">
@@ -16,305 +15,319 @@
     --text:#e4e4e4;
     --muted:#8a8a8a;
     --accent:#5a5a5a;
-    --danger:#8a4b4b;
-    --warn:#8a7a4b;
-    --ok:#4b6a5a;
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+    /* Colores por categoría (saturados pero oscuros, sin brillo) */
+    --c-reminder:#5b7fa6;
+    --c-subscription:#a68a4d;
+    --c-debt:#a65b5b;
+    --c-trial:#4d9e7a;
+    --c-memory:#7a6ba6;
+    --c-goal:#4d9ea0;
   }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{height:100%;}
+  *{box-sizing:border-box;}
   body{
     margin:0;
     background:var(--bg);
     color:var(--text);
     font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    overflow:hidden;
-  }
-  h1{font-size:16px;font-weight:600;margin:0;letter-spacing:.5px;color:#ccc;}
-  h2{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0 8px 0;}
-
-  #app{display:flex;flex-direction:column;height:100%;}
-
-  #topbar{
     display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    padding:14px 16px;
+    min-height:100vh;
+  }
+  #sidebar{
+    width:320px;
     background:var(--panel);
-    border-bottom:1px solid var(--border);
+    border-right:1px solid var(--border);
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
     flex-shrink:0;
   }
-  #topbar .brand{display:flex;flex-direction:column;}
-  #topbar .brand span{font-size:10px;color:var(--muted);}
-  #topClock{font-size:15px;color:#ddd;letter-spacing:.5px;}
-  #topWeather{
-    display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);
-    background:var(--panel2);border:1px solid var(--border);border-radius:20px;padding:5px 10px;
-  }
-  #topWeather .temp{color:#ddd;font-size:13px;}
+  h1{font-size:16px;font-weight:600;margin:0 0 4px 0;letter-spacing:.5px;color:#ccc;}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0 8px 0;}
+  #main{flex:1;padding:24px;overflow-y:auto;}
 
-  #rainAlertBar{
-    display:none;
-    background:#2e2620;border-bottom:1px solid #4a3f2e;color:#d8c79a;
-    font-size:12px;padding:8px 16px;flex-shrink:0;
-  }
-
-  #views{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px calc(90px + var(--safe-bottom)) 14px;}
-  .view{display:none;}
-  .view.active{display:block;}
-
-  #bottomNav{
-    position:fixed;left:0;right:0;bottom:0;
-    display:flex;
-    background:var(--panel);
-    border-top:1px solid var(--border);
-    padding-bottom:var(--safe-bottom);
-    z-index:50;
-  }
-  .navBtn{
-    flex:1;
-    display:flex;flex-direction:column;align-items:center;gap:2px;
-    padding:10px 0 8px 0;
-    background:none;border:none;color:var(--muted);font-size:10px;
-  }
-  .navBtn .icon{font-size:20px;line-height:1;}
-  .navBtn.active{color:#ddd;}
-
-  #fab{
-    position:fixed;
-    right:18px;
-    bottom:calc(78px + var(--safe-bottom));
-    width:56px;height:56px;
-    border-radius:50%;
-    background:#2a2a2a;
-    border:1px solid var(--border);
-    color:#ddd;
-    font-size:26px;
-    display:flex;align-items:center;justify-content:center;
-    z-index:60;
-    box-shadow:0 4px 14px rgba(0,0,0,.4);
-  }
-  #fab:active{background:#333;}
-
-  form{display:flex;flex-direction:column;gap:10px;}
+  form{display:flex;flex-direction:column;gap:8px;background:var(--panel2);padding:14px;border-radius:8px;border:1px solid var(--border);}
   label{font-size:11px;color:var(--muted);}
   input,select{
     background:#181818;
     border:1px solid var(--border);
     color:var(--text);
-    padding:12px 10px;
-    border-radius:8px;
-    font-size:15px;
-    width:100%;
+    padding:8px;
+    border-radius:6px;
+    font-size:13px;
   }
   input:focus,select:focus{outline:1px solid var(--accent);}
   button{
     background:#2a2a2a;
     color:var(--text);
     border:1px solid var(--border);
-    padding:12px;
-    border-radius:8px;
-    font-size:14px;
-    min-height:44px;
+    padding:9px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:13px;
   }
-  button:active{background:#333;}
+  button:hover{background:#333;}
 
-  #calHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
-  #calHeader button{padding:8px 16px;min-height:40px;}
-  #calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
-  .dow{text-align:center;font-size:10px;color:var(--muted);padding:4px 0;}
+  /* --- Pestañas principales --- */
+  #mainTabs{display:flex;gap:6px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0;}
+  .mtab{
+    background:transparent;border:none;border-bottom:2px solid transparent;
+    color:var(--muted);padding:9px 4px;margin-bottom:-1px;
+    border-radius:0;font-size:13px;display:flex;align-items:center;gap:6px;
+  }
+  .mtab:hover{background:transparent;color:#ccc;}
+  .mtab.active{color:#eee;}
+  .mtab .dotIcon{width:8px;height:8px;border-radius:50%;}
+  .mtab[data-view="view-calendar"].active{border-bottom-color:var(--c-reminder);}
+  .mtab[data-view="view-list"].active{border-bottom-color:#888;}
+  .mtab[data-view="view-debts"].active{border-bottom-color:var(--c-debt);}
+  .mtab[data-view="view-goals"].active{border-bottom-color:var(--c-goal);}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  #calHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  #calHeader button{padding:6px 10px;}
+  #calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .dow{text-align:center;font-size:11px;color:var(--muted);padding:4px 0;}
   .day{
     background:var(--panel2);
     border:1px solid var(--border);
     border-radius:6px;
-    min-height:46px;
-    padding:4px;
-    font-size:11px;
+    min-height:74px;
+    padding:6px;
+    font-size:12px;
     color:#bbb;
     position:relative;
     cursor:pointer;
   }
-  .day.empty{background:transparent;border:none;}
+  .day.empty{background:transparent;border:none;cursor:default;}
   .day.today{border-color:#777;border-width:1.5px;}
+  .day:hover:not(.empty){border-color:#666;}
   .daynum{font-size:11px;color:var(--muted);}
-  .dot{width:5px;height:5px;border-radius:50%;display:inline-block;margin:2px 2px 0 0;}
-  .dot.reminder{background:var(--accent);}
-  .dot.subscription{background:var(--warn);}
-  .dot.debt{background:var(--danger);}
-  .dot.trial{background:var(--ok);}
-  .dot.memory{background:#6a8a9a;}
+  .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin:2px 2px 0 0;}
+  .dot.reminder{background:var(--c-reminder);}
+  .dot.subscription{background:var(--c-subscription);}
+  .dot.debt{background:var(--c-debt);}
+  .dot.trial{background:var(--c-trial);}
+  .dot.memory{background:var(--c-memory);}
+  .dot.goal{background:var(--c-goal);}
 
-  #calLegend{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;font-size:11px;color:var(--muted);}
-  #calLegend div{display:flex;align-items:center;gap:5px;}
+  #calLegend{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px;font-size:11px;color:var(--muted);}
+  #calLegend div{display:flex;align-items:center;gap:6px;}
 
-  .overlay{
+  #modalOverlay, #payModalOverlay, #goalContribOverlay{
     display:none;
-    position:fixed;inset:0;
-    background:rgba(0,0,0,.65);
-    align-items:flex-end;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.6);
+    align-items:center;
     justify-content:center;
-    z-index:200;
+    z-index:100;
   }
-  .overlay.open{display:flex;}
+  #modalOverlay.open, #payModalOverlay.open, #goalContribOverlay.open{display:flex;}
   .modalBox{
     background:var(--panel2);
     border:1px solid var(--border);
-    border-radius:14px 14px 0 0;
+    border-radius:10px;
     padding:20px;
-    width:100%;
-    max-width:480px;
-    max-height:85vh;
-    overflow-y:auto;
+    width:380px;
+    max-width:90vw;
   }
-  .modalBox h3{margin:0 0 4px 0;font-size:15px;color:#ddd;}
+  .modalBox h3{margin:0 0 4px 0;font-size:14px;color:#ddd;}
   .modalBox .sub{font-size:11px;color:var(--muted);margin-bottom:12px;}
   .modalBox textarea{
     width:100%;
-    min-height:110px;
+    min-height:100px;
     background:#181818;
     border:1px solid var(--border);
     color:var(--text);
-    border-radius:8px;
+    border-radius:6px;
     padding:10px;
-    font-size:15px;
+    font-size:13px;
     font-family:inherit;
     resize:vertical;
   }
-  .modalActions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;flex-wrap:wrap;}
-  .modalActions button{padding:10px 14px;}
-  #modalDelete{margin-right:auto;background:transparent;border:1px solid var(--border);color:#a77;}
+  .modalActions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
+  .modalActions button{padding:8px 14px;}
+  #modalDelete{margin-right:auto;background:transparent;border:1px solid var(--border);color:#c77;}
+  #modalDelete:hover{background:#2a1c1c;}
 
   #list{display:flex;flex-direction:column;gap:8px;}
   .item{
     background:var(--panel2);
     border:1px solid var(--border);
-    border-radius:10px;
+    border-left:3px solid var(--muted);
+    border-radius:8px;
     padding:12px 14px;
     display:flex;
     justify-content:space-between;
     align-items:center;
-    gap:8px;
+    gap:10px;
   }
-  .item.past{opacity:.45;}
-  .item .info{display:flex;flex-direction:column;gap:2px;min-width:0;}
-  .item .title{font-size:14px;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .item .meta{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .tag{font-size:9px;padding:3px 7px;border-radius:20px;border:1px solid var(--border);color:#ccc;white-space:nowrap;flex-shrink:0;}
-  .tag.reminder{background:#2a2a2a;}
-  .tag.subscription{background:#33301f;}
-  .tag.debt{background:#332222;}
-  .tag.trial{background:#1f2e26;}
-  .del{background:transparent;border:none;color:var(--muted);font-size:16px;min-height:auto;padding:4px 6px;flex-shrink:0;}
-  .empty-msg{color:var(--muted);font-size:13px;padding:16px 0;text-align:center;}
+  .item.type-reminder{border-left-color:var(--c-reminder);}
+  .item.type-subscription{border-left-color:var(--c-subscription);}
+  .item.type-debt{border-left-color:var(--c-debt);}
+  .item.type-trial{border-left-color:var(--c-trial);}
+  .item.past{opacity:.4;}
+  .item .info{display:flex;flex-direction:column;gap:2px;}
+  .item .title{font-size:14px;color:#ddd;}
+  .item .meta{font-size:11px;color:var(--muted);}
+  .tag{font-size:10px;padding:2px 8px;border-radius:20px;color:#eee;white-space:nowrap;}
+  .tag.reminder{background:var(--c-reminder);}
+  .tag.subscription{background:var(--c-subscription);}
+  .tag.debt{background:var(--c-debt);}
+  .tag.trial{background:var(--c-trial);}
+  .del{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;}
+  .del:hover{color:#c77;}
+  .empty-msg{color:var(--muted);font-size:13px;padding:10px 0;}
 
-  .debtCard{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;}
-  .debtCard .top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
-  .debtCard .title{font-size:14px;color:#ddd;}
-  .debtCard .nums{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6;}
-  .debtCard .barBg{background:#181818;border-radius:6px;height:6px;margin-top:8px;overflow:hidden;}
-  .debtCard .barFill{background:#5a7a6a;height:100%;}
-  .debtCard .payBtn{padding:8px 12px;font-size:12px;min-height:auto;flex-shrink:0;}
+  .progressCard{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;}
+  .progressCard .top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .progressCard .title{font-size:14px;color:#ddd;}
+  .progressCard .nums{font-size:11px;color:var(--muted);margin-top:4px;}
+  .progressCard .barBg{background:#181818;border-radius:6px;height:7px;margin-top:9px;overflow:hidden;}
+  .progressCard .barFill{height:100%;}
+  .progressCard.debt .barFill{background:var(--c-debt);}
+  .progressCard.goal .barFill{background:var(--c-goal);}
+  .progressCard .actionBtn{padding:5px 10px;font-size:12px;flex-shrink:0;}
   .payHistory{margin-top:8px;font-size:11px;color:#888;display:flex;flex-direction:column;gap:2px;}
-  .paidOff{opacity:.5;}
+  .doneOff{opacity:.5;}
 
-  #debtsTotal{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;}
-  #debtsTotalAmount{font-size:26px;color:#ddd;margin-top:2px;}
+  #debtsTotal, #goalsTotal{
+    background:var(--panel2);border:1px solid var(--border);border-radius:8px;
+    padding:14px 16px;margin-bottom:14px;
+  }
+  #debtsTotal{border-left:3px solid var(--c-debt);}
+  #goalsTotal{border-left:3px solid var(--c-goal);}
+  #debtsTotalAmount, #goalsTotalAmount{font-size:24px;color:#ddd;margin-top:2px;}
+
+  #newGoalForm{margin-bottom:18px;}
 </style>
 </head>
 <body>
 
-<div id="app">
-
-  <div id="topbar">
-    <div class="brand">
-      <h1>Agenda</h1>
-      <span id="topClock">--:--:--</span>
-    </div>
-    <div id="topWeather">Cargando clima...</div>
+<div id="sidebar">
+  <div>
+    <h1>Agenda</h1>
+    <div style="font-size:11px;color:var(--muted);">Recordatorios, suscripciones, deudas y metas</div>
   </div>
 
-  <div id="rainAlertBar"></div>
+  <form id="form">
+    <h2>Nuevo</h2>
+    <label>Título</label>
+    <input id="title" type="text" placeholder="Ej: Netflix, cuota tarjeta, turno médico" required>
 
-  <div id="views">
+    <label>Tipo</label>
+    <select id="type">
+      <option value="reminder">Recordatorio</option>
+      <option value="subscription">Suscripción</option>
+      <option value="debt">Deuda</option>
+      <option value="trial">Período de prueba</option>
+    </select>
 
-    <div class="view active" id="view-calendar">
-      <div id="calHeader">
-        <button id="prevMonth">‹</button>
-        <div id="monthLabel" style="font-size:14px;color:#ccc;"></div>
-        <button id="nextMonth">›</button>
-      </div>
-      <div id="calGrid"></div>
-      <div id="calLegend">
-        <div><span class="dot reminder"></span>Recordatorio</div>
-        <div><span class="dot subscription"></span>Suscripción</div>
-        <div><span class="dot debt"></span>Deuda</div>
-        <div><span class="dot trial"></span>Prueba</div>
-        <div><span class="dot memory"></span>Recuerdo</div>
-      </div>
+    <label id="dateLabel">Fecha</label>
+    <input id="date" type="date" required>
+
+    <div id="amountField" style="display:none;">
+      <label>Monto total de la deuda</label>
+      <input id="amount" type="number" min="0" step="0.01" placeholder="Ej: 50000">
     </div>
 
-    <div class="view" id="view-list">
-      <h2>Próximos</h2>
-      <div id="listItems"></div>
-    </div>
+    <label>Notas (opcional)</label>
+    <input id="notes" type="text" placeholder="Monto, detalle, etc.">
 
-    <div class="view" id="view-debts">
-      <h2>Deudas</h2>
-      <div id="debtsTotal">
-        <div style="font-size:11px;color:var(--muted);">Deuda total pendiente</div>
-        <div id="debtsTotalAmount">$0</div>
-      </div>
-      <div id="debtsList"></div>
-    </div>
+    <button type="submit">Agregar</button>
+  </form>
 
+  <div>
+    <h2>Referencias</h2>
+    <div style="font-size:12px;display:flex;flex-direction:column;gap:5px;color:var(--muted);">
+      <div><span class="dot reminder"></span> Recordatorio</div>
+      <div><span class="dot subscription"></span> Suscripción</div>
+      <div><span class="dot debt"></span> Deuda</div>
+      <div><span class="dot trial"></span> Período de prueba</div>
+      <div><span class="dot memory"></span> Recuerdo del día</div>
+      <div><span class="dot goal"></span> Meta de ahorro</div>
+    </div>
   </div>
 
-  <button id="fab" type="button">+</button>
-
-  <div id="bottomNav">
-    <button class="navBtn active" data-view="view-calendar"><span class="icon">📅</span>Calendario</button>
-    <button class="navBtn" data-view="view-list"><span class="icon">📋</span>Agenda</button>
-    <button class="navBtn" data-view="view-debts"><span class="icon">💰</span>Deudas</button>
+  <div id="weatherBox" style="margin-top:auto;">
+    <button id="notifBtn" type="button" style="margin-bottom:8px;">🔔 Activar notificaciones</button>
+    <button id="testNotifBtn" type="button" style="margin-bottom:10px;background:#20303a;">🧪 Probar notificación</button>
+    <div id="clock" style="font-size:26px;color:#ddd;text-align:center;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;letter-spacing:1px;">
+      --:--:--
+    </div>
+    <h2>Clima · Berazategui</h2>
+    <div id="weatherContent" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--muted);">
+      Cargando...
+    </div>
+    <div id="rainAlert" style="display:none;margin-top:8px;background:#2e2620;border:1px solid #4a3f2e;border-radius:8px;padding:10px 12px;font-size:12px;color:#d8c79a;">
+    </div>
   </div>
-
 </div>
 
-<div id="formModalOverlay" class="overlay">
-  <div class="modalBox">
-    <h3>Nuevo</h3>
-    <form id="form">
-      <label>Título</label>
-      <input id="title" type="text" placeholder="Ej: Netflix, cuota tarjeta, turno médico" required>
+<div id="main">
 
-      <label>Tipo</label>
-      <select id="type">
-        <option value="reminder">Recordatorio</option>
-        <option value="subscription">Suscripción</option>
-        <option value="debt">Deuda</option>
-        <option value="trial">Período de prueba</option>
-      </select>
+  <div id="mainTabs">
+    <button class="mtab active" data-view="view-calendar">📅 Calendario</button>
+    <button class="mtab" data-view="view-list">📋 Próximos</button>
+    <button class="mtab" data-view="view-debts">💳 Deudas</button>
+    <button class="mtab" data-view="view-goals">🎯 Metas</button>
+  </div>
 
-      <label id="dateLabel">Fecha</label>
-      <input id="date" type="date" required>
+  <div class="view active" id="view-calendar">
+    <div id="calHeader">
+      <button id="prevMonth">‹</button>
+      <div id="monthLabel" style="font-size:14px;color:#ccc;"></div>
+      <button id="nextMonth">›</button>
+    </div>
+    <div id="calGrid"></div>
+    <div id="calLegend">
+      <div><span class="dot reminder"></span>Recordatorio</div>
+      <div><span class="dot subscription"></span>Suscripción</div>
+      <div><span class="dot debt"></span>Deuda</div>
+      <div><span class="dot trial"></span>Prueba</div>
+      <div><span class="dot memory"></span>Recuerdo</div>
+    </div>
+  </div>
 
-      <div id="amountField" style="display:none;">
-        <label>Monto total de la deuda</label>
-        <input id="amount" type="number" min="0" step="0.01" placeholder="Ej: 50000">
-      </div>
+  <div class="view" id="view-list">
+    <h2>Próximos</h2>
+    <div id="listItems"></div>
+  </div>
 
-      <label>Notas (opcional)</label>
-      <input id="notes" type="text" placeholder="Monto, detalle, etc.">
+  <div class="view" id="view-debts">
+    <h2>Deudas</h2>
+    <div id="debtsTotal">
+      <div style="font-size:11px;color:var(--muted);">Deuda total pendiente</div>
+      <div id="debtsTotalAmount">$0</div>
+    </div>
+    <div id="debtsList"></div>
+  </div>
 
-      <div class="modalActions">
-        <button type="button" id="formCancel">Cancelar</button>
-        <button type="submit">Agregar</button>
-      </div>
+  <div class="view" id="view-goals">
+    <h2>Metas de ahorro</h2>
+    <div id="goalsTotal">
+      <div style="font-size:11px;color:var(--muted);">Total ahorrado en metas</div>
+      <div id="goalsTotalAmount">$0</div>
+    </div>
+
+    <form id="newGoalForm">
+      <label>Nombre de la meta</label>
+      <input id="goalTitle" type="text" placeholder="Ej: Viaje, PC nueva, fondo de emergencia" required>
+      <label>Monto objetivo</label>
+      <input id="goalTarget" type="number" min="0" step="0.01" placeholder="Ej: 300000" required>
+      <button type="submit">Crear meta</button>
     </form>
+
+    <div id="goalsList"></div>
   </div>
+
 </div>
 
-<div id="modalOverlay" class="overlay">
+<div id="modalOverlay">
   <div class="modalBox">
     <h3 id="modalTitle">Recuerdo del día</h3>
     <div class="sub" id="modalSub"></div>
@@ -327,7 +340,7 @@
   </div>
 </div>
 
-<div id="payModalOverlay" class="overlay">
+<div id="payModalOverlay">
   <div class="modalBox">
     <h3>Registrar pago</h3>
     <div id="payModalSub" class="sub"></div>
@@ -340,10 +353,28 @@
   </div>
 </div>
 
+<div id="goalContribOverlay">
+  <div class="modalBox">
+    <h3>Agregar plata a la meta</h3>
+    <div id="goalContribSub" class="sub"></div>
+    <label>Monto que juntaste</label>
+    <input id="goalContribAmount" type="number" min="0" step="0.01" placeholder="Ej: 10000">
+    <div class="modalActions">
+      <button id="goalContribDelete" type="button" style="margin-right:auto;background:transparent;border:1px solid var(--border);color:#c77;">Borrar meta</button>
+      <button id="goalContribCancel" type="button">Cancelar</button>
+      <button id="goalContribConfirm" type="button">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const STORAGE_KEY = "agenda_items_v1";
 let items = [];
 try { items = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { items = []; }
+
+const GOALS_KEY = "agenda_goals_v1";
+let goals = [];
+try { goals = JSON.parse(localStorage.getItem(GOALS_KEY)) || []; } catch(e) { goals = []; }
 
 let viewDate = new Date();
 viewDate.setDate(1);
@@ -356,6 +387,7 @@ const typeLabels = {
 };
 
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+function saveGoals(){ localStorage.setItem(GOALS_KEY, JSON.stringify(goals)); }
 
 function fmtDate(d){
   const dt = new Date(d + "T00:00:00");
@@ -365,24 +397,14 @@ function fmtMoney(n){
   return "$" + n.toLocaleString("es-AR", {minimumFractionDigits:0, maximumFractionDigits:2});
 }
 
-document.querySelectorAll(".navBtn").forEach(btn=>{
+// --- Pestañas principales ---
+document.querySelectorAll(".mtab").forEach(btn=>{
   btn.addEventListener("click", ()=>{
-    document.querySelectorAll(".navBtn").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll(".mtab").forEach(b=>b.classList.remove("active"));
     document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById(btn.dataset.view).classList.add("active");
   });
-});
-
-const formModalOverlay = document.getElementById("formModalOverlay");
-document.getElementById("fab").addEventListener("click", ()=>{
-  formModalOverlay.classList.add("open");
-});
-document.getElementById("formCancel").addEventListener("click", ()=>{
-  formModalOverlay.classList.remove("open");
-});
-formModalOverlay.addEventListener("click", (e)=>{
-  if(e.target === formModalOverlay) formModalOverlay.classList.remove("open");
 });
 
 document.getElementById("type").addEventListener("change", (e)=>{
@@ -411,7 +433,6 @@ document.getElementById("form").addEventListener("submit", (e)=>{
   document.getElementById("form").reset();
   document.getElementById("dateLabel").textContent = "Fecha";
   document.getElementById("amountField").style.display = "none";
-  formModalOverlay.classList.remove("open");
   render();
 });
 
@@ -457,8 +478,8 @@ function renderCalendar(){
     const dayItems = items.filter(i => i.date === dateStr);
     const hasMemory = !!dayNotes[dateStr];
     el.innerHTML = `<div class="daynum">${day}</div>` +
-      dayItems.map(i => `<span class="dot ${i.type}"></span>`).join("") +
-      (hasMemory ? `<span class="dot memory"></span>` : "");
+      dayItems.map(i => `<span class="dot ${i.type}" title="${i.title}"></span>`).join("") +
+      (hasMemory ? `<span class="dot memory" title="Tiene recuerdo escrito"></span>` : "");
     el.addEventListener("click", ()=> openDayModal(dateStr));
     grid.appendChild(el);
   }
@@ -476,7 +497,7 @@ function renderList(){
 
   sorted.forEach(i=>{
     const div = document.createElement("div");
-    div.className = "item" + (i.date < todayStr ? " past" : "");
+    div.className = "item type-" + i.type + (i.date < todayStr ? " past" : "");
     let metaExtra = i.notes ? " · " + i.notes : "";
     if(i.type === "debt" && i.amount){
       const paid = (i.payments || []).reduce((s,p)=> s + p.amount, 0);
@@ -503,8 +524,10 @@ function render(){
   renderCalendar();
   renderList();
   renderDebts();
+  renderGoals();
 }
 
+// --- Deudas ---
 function renderDebts(){
   const debts = items.filter(i => i.type === "debt");
   const container = document.getElementById("debtsList");
@@ -524,13 +547,13 @@ function renderDebts(){
     const pct = total > 0 ? Math.min((paid/total)*100, 100) : 0;
 
     const card = document.createElement("div");
-    card.className = "debtCard" + (remaining <= 0 && total > 0 ? " paidOff" : "");
+    card.className = "progressCard debt" + (remaining <= 0 && total > 0 ? " doneOff" : "");
     card.innerHTML = `
       <div class="top">
         <div class="title">${d.title}${remaining<=0 && total>0 ? " ✓ saldada" : ""}</div>
-        <button class="payBtn" data-id="${d.id}" type="button">+ Pago</button>
+        <button class="actionBtn" data-id="${d.id}" type="button">+ Pago</button>
       </div>
-      <div class="nums">Total ${fmtMoney(total)}<br>Pagado ${fmtMoney(paid)} · Restante ${fmtMoney(remaining)}</div>
+      <div class="nums">Total ${fmtMoney(total)} · Pagado ${fmtMoney(paid)} · Restante ${fmtMoney(remaining)}</div>
       <div class="barBg"><div class="barFill" style="width:${pct}%;"></div></div>
       ${(d.payments && d.payments.length) ? `<div class="payHistory">` +
         d.payments.map(p => `<div>· ${fmtMoney(p.amount)} el ${fmtDate(p.date)}</div>`).join("") +
@@ -541,7 +564,7 @@ function renderDebts(){
 
   document.getElementById("debtsTotalAmount").textContent = fmtMoney(totalPending);
 
-  container.querySelectorAll(".payBtn").forEach(btn=>{
+  container.querySelectorAll(".actionBtn").forEach(btn=>{
     btn.addEventListener("click", ()=> openPayModal(btn.dataset.id));
   });
 }
@@ -555,6 +578,7 @@ function openPayModal(debtId){
   document.getElementById("payModalSub").textContent = debt ? debt.title : "";
   document.getElementById("payAmount").value = "";
   payModalOverlay.classList.add("open");
+  document.getElementById("payAmount").focus();
 }
 function closePayModal(){
   payModalOverlay.classList.remove("open");
@@ -576,6 +600,97 @@ payModalOverlay.addEventListener("click", (e)=>{
   if(e.target === payModalOverlay) closePayModal();
 });
 
+// --- Metas de ahorro ---
+document.getElementById("newGoalForm").addEventListener("submit", (e)=>{
+  e.preventDefault();
+  const title = document.getElementById("goalTitle").value.trim();
+  const target = parseFloat(document.getElementById("goalTarget").value);
+  if(!title || !target || target <= 0) return;
+  goals.push({ id: Date.now().toString(), title, target, contributions: [] });
+  saveGoals();
+  document.getElementById("newGoalForm").reset();
+  renderGoals();
+});
+
+function renderGoals(){
+  const container = document.getElementById("goalsList");
+  container.innerHTML = "";
+
+  let totalSaved = 0;
+
+  if(goals.length === 0){
+    container.innerHTML = `<div class="empty-msg">Todavía no creaste ninguna meta.</div>`;
+  }
+
+  goals.forEach(g=>{
+    const saved = (g.contributions || []).reduce((s,c)=> s + c.amount, 0);
+    const target = g.target || 0;
+    const remaining = Math.max(target - saved, 0);
+    totalSaved += saved;
+    const pct = target > 0 ? Math.min((saved/target)*100, 100) : 0;
+    const reached = saved >= target && target > 0;
+
+    const card = document.createElement("div");
+    card.className = "progressCard goal" + (reached ? " doneOff" : "");
+    card.innerHTML = `
+      <div class="top">
+        <div class="title">${g.title}${reached ? " ✓ cumplida" : ""}</div>
+        <button class="actionBtn" data-id="${g.id}" type="button">+ Aporte</button>
+      </div>
+      <div class="nums">Objetivo ${fmtMoney(target)} · Ahorrado ${fmtMoney(saved)} · Falta ${fmtMoney(remaining)}</div>
+      <div class="barBg"><div class="barFill" style="width:${pct}%;"></div></div>
+      ${(g.contributions && g.contributions.length) ? `<div class="payHistory">` +
+        g.contributions.map(c => `<div>· ${fmtMoney(c.amount)} el ${fmtDate(c.date)}</div>`).join("") +
+        `</div>` : ""}
+    `;
+    container.appendChild(card);
+  });
+
+  document.getElementById("goalsTotalAmount").textContent = fmtMoney(totalSaved);
+
+  container.querySelectorAll(".actionBtn").forEach(btn=>{
+    btn.addEventListener("click", ()=> openGoalContribModal(btn.dataset.id));
+  });
+}
+
+let currentGoalId = null;
+const goalContribOverlay = document.getElementById("goalContribOverlay");
+
+function openGoalContribModal(goalId){
+  currentGoalId = goalId;
+  const goal = goals.find(g => g.id === goalId);
+  document.getElementById("goalContribSub").textContent = goal ? goal.title : "";
+  document.getElementById("goalContribAmount").value = "";
+  goalContribOverlay.classList.add("open");
+  document.getElementById("goalContribAmount").focus();
+}
+function closeGoalContribModal(){
+  goalContribOverlay.classList.remove("open");
+  currentGoalId = null;
+}
+document.getElementById("goalContribCancel").addEventListener("click", closeGoalContribModal);
+document.getElementById("goalContribConfirm").addEventListener("click", ()=>{
+  const amountVal = parseFloat(document.getElementById("goalContribAmount").value);
+  if(!amountVal || amountVal <= 0) return;
+  const goal = goals.find(g => g.id === currentGoalId);
+  if(!goal) return;
+  if(!goal.contributions) goal.contributions = [];
+  goal.contributions.push({ amount: amountVal, date: new Date().toISOString().slice(0,10) });
+  saveGoals();
+  closeGoalContribModal();
+  renderGoals();
+});
+document.getElementById("goalContribDelete").addEventListener("click", ()=>{
+  goals = goals.filter(g => g.id !== currentGoalId);
+  saveGoals();
+  closeGoalContribModal();
+  renderGoals();
+});
+goalContribOverlay.addEventListener("click", (e)=>{
+  if(e.target === goalContribOverlay) closeGoalContribModal();
+});
+
+// --- Recuerdos del día ---
 const NOTES_KEY = "agenda_daynotes_v1";
 let dayNotes = {};
 try { dayNotes = JSON.parse(localStorage.getItem(NOTES_KEY)) || {}; } catch(e) { dayNotes = {}; }
@@ -590,6 +705,7 @@ function openDayModal(dateStr){
   modalTextarea.value = dayNotes[dateStr] || "";
   modalSub.textContent = fmtDate(dateStr);
   modalOverlay.classList.add("open");
+  modalTextarea.focus();
 }
 function closeDayModal(){
   modalOverlay.classList.remove("open");
@@ -624,11 +740,12 @@ document.getElementById("nextMonth").addEventListener("click", ()=>{
 
 render();
 
+// --- Clima (Berazategui, Buenos Aires) ---
 const WEATHER_LAT = -34.7636;
 const WEATHER_LON = -58.2119;
 
 const weatherCodes = {
-  0:"Despejado", 1:"Mayorm. despejado", 2:"Parc. nublado", 3:"Nublado",
+  0:"Despejado", 1:"Mayormente despejado", 2:"Parcialmente nublado", 3:"Nublado",
   45:"Niebla", 48:"Niebla helada",
   51:"Llovizna débil", 53:"Llovizna", 55:"Llovizna intensa",
   61:"Lluvia débil", 63:"Lluvia", 65:"Lluvia intensa",
@@ -639,15 +756,21 @@ const weatherCodes = {
 };
 
 async function loadWeather(){
-  const box = document.getElementById("topWeather");
-  const alertBar = document.getElementById("rainAlertBar");
+  const box = document.getElementById("weatherContent");
+  const alertBox = document.getElementById("rainAlert");
   try{
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${WEATHER_LAT}&longitude=${WEATHER_LON}&current=temperature_2m,weather_code&hourly=precipitation_probability&timezone=America%2FArgentina%2FBuenos_Aires`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${WEATHER_LAT}&longitude=${WEATHER_LON}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=precipitation_probability,weather_code&timezone=America%2FArgentina%2FBuenos_Aires`;
     const res = await fetch(url);
     const data = await res.json();
     const c = data.current;
     const desc = weatherCodes[c.weather_code] || "—";
-    box.innerHTML = `<span class="temp">${Math.round(c.temperature_2m)}°C</span> · ${desc}`;
+    box.innerHTML = `
+      <div style="font-size:22px;color:#ddd;">${Math.round(c.temperature_2m)}°C</div>
+      <div style="margin-top:2px;">${desc}</div>
+      <div style="margin-top:6px;color:#777;">
+        Sensación ${Math.round(c.apparent_temperature)}°C · Humedad ${c.relative_humidity_2m}% · Viento ${Math.round(c.wind_speed_10m)} km/h
+      </div>
+    `;
 
     const times = data.hourly.time;
     const probs = data.hourly.precipitation_probability;
@@ -658,25 +781,27 @@ async function loadWeather(){
     }
     if(maxProb >= 40){
       const hourStr = new Date(maxHour).toLocaleTimeString("es-AR", {hour:"2-digit", minute:"2-digit"});
-      alertBar.style.display = "block";
-      alertBar.textContent = `⚠ Probabilidad de lluvia ${maxProb}% cerca de las ${hourStr}. Llevá paraguas.`;
+      alertBox.style.display = "block";
+      alertBox.innerHTML = `⚠ Probabilidad de lluvia ${maxProb}% cerca de las ${hourStr}. Llevá paraguas.`;
     } else {
-      alertBar.style.display = "none";
+      alertBox.style.display = "none";
     }
   }catch(e){
-    box.textContent = "Sin conexión";
-    alertBar.style.display = "none";
+    box.innerHTML = "No se pudo cargar el clima (sin conexión a internet).";
+    alertBox.style.display = "none";
   }
 }
 loadWeather();
 setInterval(loadWeather, 15 * 60 * 1000);
 
+// --- Reloj en tiempo real ---
 function updateClock(){
-  document.getElementById("topClock").textContent = new Date().toLocaleTimeString("es-AR", {hour12:false});
+  document.getElementById("clock").textContent = new Date().toLocaleTimeString("es-AR", {hour12:false});
 }
 updateClock();
 setInterval(updateClock, 1000);
 
+// --- PWA: service worker ---
 if("serviceWorker" in navigator){
   window.addEventListener("load", ()=>{
     navigator.serviceWorker.register("service-worker.js").then(async (reg)=>{
@@ -695,8 +820,45 @@ if("serviceWorker" in navigator){
   });
 }
 
+// --- Notificaciones ---
+const notifBtn = document.getElementById("notifBtn");
+const testNotifBtn = document.getElementById("testNotifBtn");
+
+function updateNotifBtn(){
+  if(!("Notification" in window)){
+    notifBtn.textContent = "🔔 No soportado en este navegador";
+    notifBtn.disabled = true;
+    return;
+  }
+  notifBtn.textContent = Notification.permission === "granted" ? "🔔 Notificaciones activadas" : "🔔 Activar notificaciones";
+}
+updateNotifBtn();
+notifBtn.addEventListener("click", async ()=>{
+  if(!("Notification" in window)) return;
+  const perm = await Notification.requestPermission();
+  updateNotifBtn();
+  if(perm === "granted") checkDueAndNotify();
+});
+
+testNotifBtn.addEventListener("click", async ()=>{
+  if(!("Notification" in window)){
+    alert("Este navegador no soporta notificaciones.");
+    return;
+  }
+  let perm = Notification.permission;
+  if(perm === "default"){
+    perm = await Notification.requestPermission();
+    updateNotifBtn();
+  }
+  if(perm === "granted"){
+    showNotif("Notificación de prueba 🧪", "Si ves esto, las notificaciones están funcionando bien.");
+  } else {
+    alert("Las notificaciones están bloqueadas para este sitio. Revisá los permisos del navegador (ícono de candado junto a la dirección).");
+  }
+});
+
 function showNotif(title, body){
-  if(!("Notification" in window) || Notification.permission !== "granted") return;
+  if(Notification.permission !== "granted") return;
   if(navigator.serviceWorker && navigator.serviceWorker.controller){
     navigator.serviceWorker.ready.then(reg=>{
       reg.showNotification(title, { body, icon: "icon-192.png", badge: "icon-192.png" });
@@ -706,42 +868,50 @@ function showNotif(title, body){
   }
 }
 
-const NOTIF_LOG_KEY = "agenda_notif_log_v1";
-function alreadyNotifiedToday(key){
-  const log = JSON.parse(localStorage.getItem(NOTIF_LOG_KEY) || "{}");
-  return log[key] === new Date().toISOString().slice(0,10);
+// Avisamos 3 días antes, 1 día antes y 12 horas antes de la fecha del evento.
+// Cada aviso se dispara una sola vez (se guarda un registro permanente por evento+aviso).
+const NOTIF_FIRED_KEY = "agenda_notif_fired_v2";
+function getFiredSet(){
+  try { return new Set(JSON.parse(localStorage.getItem(NOTIF_FIRED_KEY) || "[]")); }
+  catch(e){ return new Set(); }
 }
-function markNotified(key){
-  const log = JSON.parse(localStorage.getItem(NOTIF_LOG_KEY) || "{}");
-  log[key] = new Date().toISOString().slice(0,10);
-  localStorage.setItem(NOTIF_LOG_KEY, JSON.stringify(log));
+function markFired(key){
+  const set = getFiredSet();
+  set.add(key);
+  localStorage.setItem(NOTIF_FIRED_KEY, JSON.stringify([...set]));
 }
+
+const CHECKPOINTS = [
+  { key: "3d",  msBefore: 3 * 24 * 60 * 60 * 1000, label: "En 3 días" },
+  { key: "1d",  msBefore: 1 * 24 * 60 * 60 * 1000, label: "Mañana" },
+  { key: "12h", msBefore: 12 * 60 * 60 * 1000,     label: "En 12 horas" }
+];
 
 function checkDueAndNotify(){
   if(!("Notification" in window) || Notification.permission !== "granted") return;
-  const todayStr = new Date().toISOString().slice(0,10);
-  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
-  const tomorrowStr = tomorrow.toISOString().slice(0,10);
+  const now = new Date();
+  const fired = getFiredSet();
 
   items.forEach(i=>{
-    if(i.date === todayStr && !alreadyNotifiedToday("today-"+i.id)){
-      showNotif("Hoy: " + i.title, typeLabels[i.type] + (i.notes ? " · " + i.notes : ""));
-      markNotified("today-"+i.id);
-    } else if(i.date === tomorrowStr && !alreadyNotifiedToday("tomorrow-"+i.id)){
-      showNotif("Mañana: " + i.title, typeLabels[i.type]);
-      markNotified("tomorrow-"+i.id);
-    }
+    const dueDate = new Date(i.date + "T00:00:00");
+    CHECKPOINTS.forEach(cp=>{
+      const key = i.id + "-" + cp.key;
+      const triggerTime = new Date(dueDate.getTime() - cp.msBefore);
+      // Se dispara si ya llegamos o pasamos el horario del aviso, y todavía no venció el evento del todo (con 1 día de margen por si abrís tarde)
+      const graceEnd = new Date(dueDate.getTime() + 24*60*60*1000);
+      if(now >= triggerTime && now <= graceEnd && !fired.has(key)){
+        showNotif(`${cp.label}: ${i.title}`, typeLabels[i.type] + (i.notes ? " · " + i.notes : ""));
+        markFired(key);
+      }
+    });
   });
 }
 
-if("Notification" in window && Notification.permission === "default"){
-  Notification.requestPermission();
-}
 checkDueAndNotify();
 document.addEventListener("visibilitychange", ()=>{
   if(document.visibilityState === "visible") checkDueAndNotify();
 });
-setInterval(checkDueAndNotify, 30 * 60 * 1000);
+setInterval(checkDueAndNotify, 15 * 60 * 1000); // revisamos cada 15 min mientras esté abierta
 </script>
 </body>
 </html>
