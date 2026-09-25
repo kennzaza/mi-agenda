@@ -830,7 +830,7 @@ function updateNotifBtn(){
     notifBtn.disabled = true;
     return;
   }
-  notifBtn.textContent = Notification.permission === "granted" ? "🔔 Notificaciones activadas" : "🔔 Activar notificaciones";
+  notifBtn.textContent = Notification.permission === "granted" ? "Notificaciones activadas" : "Activar notificaciones";
 }
 updateNotifBtn();
 notifBtn.addEventListener("click", async ()=>{
