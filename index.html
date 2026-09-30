@@ -343,7 +343,7 @@
   </div>
 
   <div id="weatherBox" style="margin-top:auto;">
-    <button id="notifBtn" type="button" style="margin-bottom:10px;">Activar notificaciones</button>
+
     <div id="clock" style="font-size:26px;color:#ddd;text-align:center;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;letter-spacing:1px;">
       --:--:--
     </div>
@@ -554,6 +554,15 @@
       <button id="movieModalDelete" type="button" style="margin-right:auto;background:transparent;border:1px solid var(--border);color:#c77;">Quitar del ranking</button>
       <button id="movieModalClose" type="button">Cerrar</button>
     </div>
+  </div>
+</div>
+
+<div id="inAppAlertsOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);align-items:center;justify-content:center;z-index:210;">
+  <div style="background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:22px;width:420px;max-width:90vw;max-height:80vh;overflow-y:auto;">
+    <h3 style="margin:0 0 4px 0;font-size:15px;color:#ddd;">Tenés avisos pendientes</h3>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Esto es lo que se venció, o está por vencer, desde la última vez que entraste.</div>
+    <div id="inAppAlertsList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+    <button id="inAppAlertsCloseBtn" type="button" style="width:100%;">Entendido</button>
   </div>
 </div>
 
@@ -1486,56 +1495,18 @@ function updateClock(){
 updateClock();
 setInterval(updateClock, 1000);
 
+// El service worker sigue registrado solo para que la app funcione offline (caché de archivos),
+// ya no se usa para notificaciones en segundo plano.
 if("serviceWorker" in navigator){
   window.addEventListener("load", ()=>{
-    navigator.serviceWorker.register("service-worker.js").then(async (reg)=>{
-      try{
-        if("periodicSync" in reg){
-          const status = await navigator.permissions.query({name:"periodic-background-sync"});
-          if(status.state === "granted"){
-            await reg.periodicSync.register("check-agenda", { minInterval: 6 * 60 * 60 * 1000 });
-          }
-        }
-      }catch(e){}
-    }).catch(()=>{});
-  });
-  navigator.serviceWorker.addEventListener("message", (event)=>{
-    if(event.data && event.data.type === "CHECK_DUE") checkDueAndNotify();
+    navigator.serviceWorker.register("service-worker.js").catch(()=>{});
   });
 }
 
-// --- Notificaciones ---
-const notifBtn = document.getElementById("notifBtn");
-
-function updateNotifBtn(){
-  if(!("Notification" in window)){
-    notifBtn.textContent = "No soportado en este navegador";
-    notifBtn.disabled = true;
-    return;
-  }
-  notifBtn.textContent = Notification.permission === "granted" ? "Notificaciones activadas" : "Activar notificaciones";
-}
-updateNotifBtn();
-notifBtn.addEventListener("click", async ()=>{
-  if(!("Notification" in window)) return;
-  const perm = await Notification.requestPermission();
-  updateNotifBtn();
-  if(perm === "granted") checkDueAndNotify();
-});
-
-function showNotif(title, body){
-  if(Notification.permission !== "granted") return;
-  if(navigator.serviceWorker && navigator.serviceWorker.controller){
-    navigator.serviceWorker.ready.then(reg=>{
-      reg.showNotification(title, { body, icon: "icon-192.png", badge: "icon-192.png" });
-    });
-  } else {
-    new Notification(title, { body, icon: "icon-192.png" });
-  }
-}
-
+// --- Avisos dentro de la app (reemplaza a las notificaciones del navegador) ---
+// Se muestran en un cartel apenas entrás a la página (o si pasó un día nuevo desde la última visita).
 // Avisos: 3 días antes, 1 día antes, 12 horas antes para todo.
-// Para período de prueba, se suma un aviso extra 2 días antes (refuerzo).
+// Para período de prueba, se suma un aviso extra 2 días antes.
 const NOTIF_FIRED_KEY = "agenda_notif_fired_v2";
 function getFiredSet(){
   try { return new Set(JSON.parse(localStorage.getItem(NOTIF_FIRED_KEY) || "[]")); }
@@ -1554,10 +1525,10 @@ const CHECKPOINTS = [
 ];
 const TRIAL_EXTRA_CHECKPOINT = { key: "2d", msBefore: 2 * 24 * 60 * 60 * 1000, label: "En 2 días" };
 
-function checkDueAndNotify(){
-  if(!("Notification" in window) || Notification.permission !== "granted") return;
+function checkDueAndShowAlerts(){
   const now = new Date();
   const fired = getFiredSet();
+  const pending = [];
 
   items.forEach(i=>{
     const dueDate = new Date(i.date + "T00:00:00");
@@ -1567,19 +1538,30 @@ function checkDueAndNotify(){
       const triggerTime = new Date(dueDate.getTime() - cp.msBefore);
       const graceEnd = new Date(dueDate.getTime() + 24*60*60*1000);
       if(now >= triggerTime && now <= graceEnd && !fired.has(key)){
-        const prefix = i.type === "trial" ? "Prueba por vencer" : cp.label;
-        showNotif(`${cp.label}: ${i.title}`, typeLabels[i.type] + (i.notes ? " · " + i.notes : ""));
-        markFired(key);
+        pending.push({ key, title: i.title, type: i.type, label: cp.label, notes: i.notes });
       }
     });
   });
+
+  if(pending.length > 0){
+    const listEl = document.getElementById("inAppAlertsList");
+    listEl.innerHTML = pending.map(p => `
+      <div class="item type-${p.type}">
+        <div class="info">
+          <div class="title">${p.label}: ${p.title}</div>
+          <div class="meta">${typeLabels[p.type]}${p.notes ? " · " + p.notes : ""}</div>
+        </div>
+      </div>
+    `).join("");
+    document.getElementById("inAppAlertsOverlay").style.display = "flex";
+    document.getElementById("inAppAlertsCloseBtn").onclick = ()=>{
+      pending.forEach(p => markFired(p.key));
+      document.getElementById("inAppAlertsOverlay").style.display = "none";
+    };
+  }
 }
 
-checkDueAndNotify();
-document.addEventListener("visibilitychange", ()=>{
-  if(document.visibilityState === "visible") checkDueAndNotify();
-});
-setInterval(checkDueAndNotify, 15 * 60 * 1000);
+checkDueAndShowAlerts();
 </script>
 </body>
 </html>
