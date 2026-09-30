@@ -465,6 +465,9 @@
       <button id="tmdbKeySave" type="button" style="margin-top:8px;">Guardar clave</button>
       <div class="sub">Es gratis. Pedila en themoviedb.org → creá una cuenta → Configuración → API → "Create" → copiá la "API Key (v3 auth)" y pegala acá. Solo lo hacés una vez.</div>
     </div>
+    <div id="tmdbKeyCollapsed" style="display:none;font-size:11px;color:var(--muted);margin-bottom:14px;">
+      Clave de TMDB configurada. <button id="tmdbKeyChangeBtn" type="button" style="padding:3px 8px;font-size:11px;margin-left:4px;">Cambiar clave</button>
+    </div>
 
     <div id="movieSearchRow">
       <input id="movieSearchInput" type="text" placeholder="Buscar película o serie por nombre...">
@@ -1081,10 +1084,22 @@ let ranking = [];
 try { ranking = JSON.parse(localStorage.getItem(RANKING_KEY)) || []; } catch(e) { ranking = []; }
 
 document.getElementById("tmdbKeyInput").value = tmdbKey;
+
+function updateTmdbKeyBoxVisibility(){
+  const hasKey = !!tmdbKey;
+  document.getElementById("tmdbKeyBox").style.display = hasKey ? "none" : "block";
+  document.getElementById("tmdbKeyCollapsed").style.display = hasKey ? "block" : "none";
+}
+updateTmdbKeyBoxVisibility();
+
 document.getElementById("tmdbKeySave").addEventListener("click", ()=>{
   tmdbKey = document.getElementById("tmdbKeyInput").value.trim();
   localStorage.setItem(TMDB_KEY_STORAGE, tmdbKey);
-  alert(tmdbKey ? "Clave guardada." : "Clave borrada.");
+  updateTmdbKeyBoxVisibility();
+});
+document.getElementById("tmdbKeyChangeBtn").addEventListener("click", ()=>{
+  document.getElementById("tmdbKeyBox").style.display = "block";
+  document.getElementById("tmdbKeyCollapsed").style.display = "none";
 });
 
 function saveRanking(){ localStorage.setItem(RANKING_KEY, JSON.stringify(ranking)); }
