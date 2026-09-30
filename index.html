@@ -473,19 +473,8 @@
   <div class="view" id="view-movies">
     <h2>Series y películas</h2>
 
-    <div id="tmdbKeyBox">
-      <label>Clave de TMDB (una sola vez)</label>
-      <input id="tmdbKeyInput" type="text" placeholder="Pegá acá tu API Key de TMDB">
-      <button id="tmdbKeySave" type="button" style="margin-top:8px;">Guardar clave</button>
-      <div class="sub">Es gratis. Pedila en themoviedb.org → creá una cuenta → Configuración → API → "Create" → copiá la "API Key (v3 auth)" y pegala acá. Solo lo hacés una vez.</div>
-    </div>
-    <div id="tmdbKeyCollapsed" style="display:none;font-size:11px;color:var(--muted);margin-bottom:14px;">
-      Clave de TMDB configurada. <button id="tmdbKeyChangeBtn" type="button" style="padding:3px 8px;font-size:11px;margin-left:4px;">Cambiar clave</button>
-    </div>
-
     <div id="movieSearchRow">
       <input id="movieSearchInput" type="text" placeholder="Buscar película o serie por nombre...">
-      <button id="movieSearchBtn" type="button">Buscar</button>
     </div>
     <div id="movieSearchResults"></div>
 
@@ -560,6 +549,7 @@
         </div>
       </div>
     </div>
+    <div id="movieModalOverview" style="font-size:12px;color:var(--muted);margin-top:14px;line-height:1.5;"></div>
     <div class="modalActions">
       <button id="movieModalDelete" type="button" style="margin-right:auto;background:transparent;border:1px solid var(--border);color:#c77;">Quitar del ranking</button>
       <button id="movieModalClose" type="button">Cerrar</button>
@@ -1189,35 +1179,15 @@ let tmdbKey = localStorage.getItem(TMDB_KEY_STORAGE) || TMDB_DEFAULT_KEY;
 let ranking = [];
 try { ranking = JSON.parse(localStorage.getItem(RANKING_KEY)) || []; } catch(e) { ranking = []; }
 
-document.getElementById("tmdbKeyInput").value = tmdbKey;
-
-function updateTmdbKeyBoxVisibility(){
-  const hasKey = !!tmdbKey;
-  document.getElementById("tmdbKeyBox").style.display = hasKey ? "none" : "block";
-  document.getElementById("tmdbKeyCollapsed").style.display = hasKey ? "block" : "none";
-}
-updateTmdbKeyBoxVisibility();
-
-document.getElementById("tmdbKeySave").addEventListener("click", ()=>{
-  tmdbKey = document.getElementById("tmdbKeyInput").value.trim();
-  localStorage.setItem(TMDB_KEY_STORAGE, tmdbKey);
-  updateTmdbKeyBoxVisibility();
-});
-document.getElementById("tmdbKeyChangeBtn").addEventListener("click", ()=>{
-  document.getElementById("tmdbKeyBox").style.display = "block";
-  document.getElementById("tmdbKeyCollapsed").style.display = "none";
-});
-
 function saveRanking(){ localStorage.setItem(RANKING_KEY, JSON.stringify(ranking)); }
 
 async function searchMovies(){
   const query = document.getElementById("movieSearchInput").value.trim();
   const resultsEl = document.getElementById("movieSearchResults");
-  if(!tmdbKey){
-    resultsEl.innerHTML = `<div class="empty-msg">Primero pegá y guardá tu clave de TMDB arriba.</div>`;
+  if(!query){
+    resultsEl.innerHTML = "";
     return;
   }
-  if(!query) return;
   resultsEl.innerHTML = `<div class="empty-msg">Buscando...</div>`;
   try{
     const url = `https://api.themoviedb.org/3/search/multi?api_key=${encodeURIComponent(tmdbKey)}&language=es-ES&query=${encodeURIComponent(query)}`;
@@ -1246,7 +1216,8 @@ async function searchMovies(){
       card.addEventListener("click", ()=>{
         addToRanking({
           id: r.id, mediaType: r.media_type, title, year,
-          poster_path: r.poster_path || null, rating: 0
+          poster_path: r.poster_path || null, rating: 0,
+          overview: r.overview || ""
         });
       });
       resultsEl.appendChild(card);
@@ -1255,9 +1226,15 @@ async function searchMovies(){
     resultsEl.innerHTML = `<div class="empty-msg">Error al buscar. Revisá tu conexión o la clave.</div>`;
   }
 }
-document.getElementById("movieSearchBtn").addEventListener("click", searchMovies);
-document.getElementById("movieSearchInput").addEventListener("keydown", (e)=>{
-  if(e.key === "Enter"){ e.preventDefault(); searchMovies(); }
+let movieSearchTimeout = null;
+document.getElementById("movieSearchInput").addEventListener("input", ()=>{
+  clearTimeout(movieSearchTimeout);
+  const val = document.getElementById("movieSearchInput").value.trim();
+  if(!val){
+    document.getElementById("movieSearchResults").innerHTML = "";
+    return;
+  }
+  movieSearchTimeout = setTimeout(searchMovies, 400);
 });
 
 function addToRanking(entry){
@@ -1319,6 +1296,12 @@ function openMovieModal(id, mediaType){
     noImg.style.display = "flex";
   }
   updateStarButtons(m.rating);
+
+  const overviewEl = document.getElementById("movieModalOverview");
+  const ratingText = m.rating > 0 ? `Tu puntuación: ${m.rating} de 5` : "Todavía no le pusiste puntuación";
+  overviewEl.innerHTML = `<div style="color:#c9a84d;margin-bottom:8px;">${ratingText}</div>` +
+    (m.overview ? m.overview : "Sin sinopsis disponible.");
+
   movieModalOverlay.classList.add("open");
 }
 
@@ -1337,6 +1320,9 @@ document.querySelectorAll(".starBtn").forEach(btn=>{
     m.rating = m.rating === newRating ? 0 : newRating; // tocar la misma estrella la saca
     saveRanking();
     updateStarButtons(m.rating);
+    const ratingText = m.rating > 0 ? `Tu puntuación: ${m.rating} de 5` : "Todavía no le pusiste puntuación";
+    document.getElementById("movieModalOverview").innerHTML = `<div style="color:#c9a84d;margin-bottom:8px;">${ratingText}</div>` +
+      (m.overview ? m.overview : "Sin sinopsis disponible.");
     renderRanking();
   });
 });
