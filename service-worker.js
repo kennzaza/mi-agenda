@@ -1,4 +1,4 @@
-const CACHE_NAME = "agenda-cache-v1";
+const CACHE_NAME = "agenda-cache-v2";
 const ASSETS = ["./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -22,25 +22,3 @@ self.addEventListener("fetch", (event) => {
     caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
 });
-
-// Chequeo periódico en segundo plano (soporte limitado: solo algunos Android/Chrome,
-// y el sistema operativo decide cada cuánto lo ejecuta realmente, no es preciso al minuto).
-self.addEventListener("periodicsync", (event) => {
-  if (event.tag === "check-agenda") {
-    event.waitUntil(checkAndNotify());
-  }
-});
-
-// Fallback: algunos navegadores disparan "sync" simple en vez de periodicsync.
-self.addEventListener("sync", (event) => {
-  if (event.tag === "check-agenda") {
-    event.waitUntil(checkAndNotify());
-  }
-});
-
-async function checkAndNotify(){
-  const clientsList = await self.clients.matchAll();
-  // Le pedimos a una ventana abierta los datos (si hay alguna); si no hay, no podemos leer localStorage desde el SW.
-  if (clientsList.length === 0) return;
-  clientsList[0].postMessage({ type: "CHECK_DUE" });
-}
