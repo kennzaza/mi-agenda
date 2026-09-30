@@ -264,6 +264,20 @@
   .starBtn{background:transparent;border:none;font-size:26px;color:#444;padding:0;min-height:auto;cursor:pointer;}
   .starBtn.filled{color:#c9a84d;}
 
+  /* --- Visual (personalización) --- */
+  .colorRow{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--panel2);border:1px solid var(--border);border-radius:8px;
+    padding:10px 14px;margin-bottom:8px;
+  }
+  .colorRow .label{font-size:13px;color:#ddd;}
+  .colorRow .sub{font-size:11px;color:var(--muted);}
+  .colorRow input[type="color"]{
+    width:42px;height:32px;padding:2px;border-radius:6px;border:1px solid var(--border);background:#181818;cursor:pointer;
+  }
+  #visualGroups{margin-bottom:20px;}
+  #visualGroups h2{margin-top:18px;}
+
   /* --- Estadísticas --- */
   .statCard{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;}
   .statCard .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
@@ -329,8 +343,7 @@
   </div>
 
   <div id="weatherBox" style="margin-top:auto;">
-    <button id="notifBtn" type="button" style="margin-bottom:8px;">Activar notificaciones</button>
-    <button id="testNotifBtn" type="button" style="margin-bottom:10px;background:#20303a;">Probar notificación</button>
+    <button id="notifBtn" type="button" style="margin-bottom:10px;">Activar notificaciones</button>
     <div id="clock" style="font-size:26px;color:#ddd;text-align:center;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;letter-spacing:1px;">
       --:--:--
     </div>
@@ -353,6 +366,7 @@
     <button class="mtab" data-view="view-goals">Metas</button>
     <button class="mtab" data-view="view-stats">Estadísticas</button>
     <button class="mtab" data-view="view-movies">Series y películas</button>
+    <button class="mtab" data-view="view-visual">Visual</button>
   </div>
 
   <!-- Resumen del día -->
@@ -477,6 +491,54 @@
 
     <h2>Tu ranking</h2>
     <div id="rankingGrid"></div>
+  </div>
+
+  <div class="view" id="view-visual">
+    <h2>Personalización visual</h2>
+    <div id="visualGroups">
+
+      <h2>General</h2>
+      <div class="colorRow">
+        <div><div class="label">Fondo general</div><div class="sub">El color de fondo de toda la página</div></div>
+        <input type="color" data-var="--bg" id="color-bg">
+      </div>
+      <div class="colorRow">
+        <div><div class="label">Paneles</div><div class="sub">Fondo de la barra lateral y tarjetas</div></div>
+        <input type="color" data-var="--panel2" id="color-panel2">
+      </div>
+      <div class="colorRow">
+        <div><div class="label">Texto</div><div class="sub">Color principal de las letras</div></div>
+        <input type="color" data-var="--text" id="color-text">
+      </div>
+
+      <h2>Colores por categoría</h2>
+      <div class="colorRow">
+        <div><div class="label">Recordatorio</div></div>
+        <input type="color" data-var="--c-reminder" id="color-reminder">
+      </div>
+      <div class="colorRow">
+        <div><div class="label">Suscripción</div></div>
+        <input type="color" data-var="--c-subscription" id="color-subscription">
+      </div>
+      <div class="colorRow">
+        <div><div class="label">Deuda</div></div>
+        <input type="color" data-var="--c-debt" id="color-debt">
+      </div>
+      <div class="colorRow">
+        <div><div class="label">Período de prueba</div></div>
+        <input type="color" data-var="--c-trial" id="color-trial">
+      </div>
+      <div class="colorRow">
+        <div><div class="label">Recuerdo del día</div></div>
+        <input type="color" data-var="--c-memory" id="color-memory">
+      </div>
+      <div class="colorRow">
+        <div><div class="label">Meta de ahorro</div></div>
+        <input type="color" data-var="--c-goal" id="color-goal">
+      </div>
+
+    </div>
+    <button id="resetColorsBtn" type="button">Restablecer colores originales</button>
   </div>
 
 </div>
@@ -1076,10 +1138,54 @@ function renderStats(){
 rollForwardRecurring();
 render();
 
+// --- Visual (personalización de colores) ---
+const VISUAL_KEY = "agenda_visual_colors_v1";
+const DEFAULT_COLORS = {
+  "--bg": "#141414",
+  "--panel2": "#232323",
+  "--text": "#e4e4e4",
+  "--c-reminder": "#5b7fa6",
+  "--c-subscription": "#a68a4d",
+  "--c-debt": "#a65b5b",
+  "--c-trial": "#4d9e7a",
+  "--c-memory": "#7a6ba6",
+  "--c-goal": "#4d9ea0"
+};
+
+function loadVisualColors(){
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(VISUAL_KEY)) || {}; } catch(e){ saved = {}; }
+  const colors = { ...DEFAULT_COLORS, ...saved };
+  Object.entries(colors).forEach(([varName, value])=>{
+    document.documentElement.style.setProperty(varName, value);
+  });
+  document.querySelectorAll("#visualGroups input[type='color']").forEach(input=>{
+    input.value = colors[input.dataset.var];
+  });
+}
+
+document.querySelectorAll("#visualGroups input[type='color']").forEach(input=>{
+  input.addEventListener("input", ()=>{
+    document.documentElement.style.setProperty(input.dataset.var, input.value);
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(VISUAL_KEY)) || {}; } catch(e){ saved = {}; }
+    saved[input.dataset.var] = input.value;
+    localStorage.setItem(VISUAL_KEY, JSON.stringify(saved));
+  });
+});
+
+document.getElementById("resetColorsBtn").addEventListener("click", ()=>{
+  localStorage.removeItem(VISUAL_KEY);
+  loadVisualColors();
+});
+
+loadVisualColors();
+
 // --- Series y películas (TMDB) ---
 const TMDB_KEY_STORAGE = "agenda_tmdb_key_v1";
+const TMDB_DEFAULT_KEY = "e8240c6373185fe0f3e12103aab18bfa";
 const RANKING_KEY = "agenda_movie_ranking_v1";
-let tmdbKey = localStorage.getItem(TMDB_KEY_STORAGE) || "";
+let tmdbKey = localStorage.getItem(TMDB_KEY_STORAGE) || TMDB_DEFAULT_KEY;
 let ranking = [];
 try { ranking = JSON.parse(localStorage.getItem(RANKING_KEY)) || []; } catch(e) { ranking = []; }
 
@@ -1336,7 +1442,6 @@ if("serviceWorker" in navigator){
 
 // --- Notificaciones ---
 const notifBtn = document.getElementById("notifBtn");
-const testNotifBtn = document.getElementById("testNotifBtn");
 
 function updateNotifBtn(){
   if(!("Notification" in window)){
@@ -1352,23 +1457,6 @@ notifBtn.addEventListener("click", async ()=>{
   const perm = await Notification.requestPermission();
   updateNotifBtn();
   if(perm === "granted") checkDueAndNotify();
-});
-
-testNotifBtn.addEventListener("click", async ()=>{
-  if(!("Notification" in window)){
-    alert("Este navegador no soporta notificaciones.");
-    return;
-  }
-  let perm = Notification.permission;
-  if(perm === "default"){
-    perm = await Notification.requestPermission();
-    updateNotifBtn();
-  }
-  if(perm === "granted"){
-    showNotif("Notificación de prueba", "Si ves esto, las notificaciones están funcionando bien.");
-  } else {
-    alert("Las notificaciones están bloqueadas para este sitio. Revisá los permisos del navegador.");
-  }
 });
 
 function showNotif(title, body){
