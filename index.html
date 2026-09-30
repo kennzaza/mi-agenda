@@ -347,13 +347,6 @@
     <div id="clock" style="font-size:26px;color:#ddd;text-align:center;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;letter-spacing:1px;">
       --:--:--
     </div>
-    <div id="locationPrompt" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:12px;color:var(--muted);">
-      <div style="margin-bottom:8px;">¿Activar ubicación? Esto sirve para saber en qué zona colocar el pronóstico.</div>
-      <div style="display:flex;gap:8px;">
-        <button id="locationAcceptBtn" type="button" style="flex:1;padding:6px;font-size:12px;">Activar</button>
-        <button id="locationDeclineBtn" type="button" style="flex:1;padding:6px;font-size:12px;background:transparent;">No, gracias</button>
-      </div>
-    </div>
     <h2 id="weatherCityLabel">Clima · Berazategui</h2>
     <div id="weatherContent" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--muted);">
       Cargando...
@@ -560,6 +553,19 @@
     <div class="modalActions">
       <button id="movieModalDelete" type="button" style="margin-right:auto;background:transparent;border:1px solid var(--border);color:#c77;">Quitar del ranking</button>
       <button id="movieModalClose" type="button">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="locationOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);align-items:center;justify-content:center;z-index:200;">
+  <div style="background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:22px;width:360px;max-width:90vw;">
+    <h3 style="margin:0 0 10px 0;font-size:15px;color:#ddd;">Activar ubicación</h3>
+    <div style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:18px;">
+      ¿Activar ubicación? Esto sirve para saber en qué zona colocar el pronóstico.
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button id="locationDeclineBtn" type="button" style="flex:1;background:transparent;">No, gracias</button>
+      <button id="locationAcceptBtn" type="button" style="flex:1;">Activar</button>
     </div>
   </div>
 </div>
@@ -1395,35 +1401,33 @@ function requestBrowserLocation(){
 }
 
 const LOCATION_PROMPT_KEY = "agenda_location_choice_v1";
+const locationOverlay = document.getElementById("locationOverlay");
 
 function initWeatherLocation(){
   const choice = localStorage.getItem(LOCATION_PROMPT_KEY);
-  const promptEl = document.getElementById("locationPrompt");
 
   if(choice === "accepted"){
-    promptEl.style.display = "none";
     requestBrowserLocation();
     return;
   }
   if(choice === "declined"){
-    promptEl.style.display = "none";
     loadWeather();
     return;
   }
 
-  // Todavía no eligió: mostramos nuestro aviso propio primero
-  promptEl.style.display = "block";
+  // Todavía no eligió: mostramos el cartel una sola vez
+  locationOverlay.style.display = "flex";
   loadWeather(); // mientras tanto, mostramos Berazategui por defecto
 }
 
 document.getElementById("locationAcceptBtn").addEventListener("click", ()=>{
   localStorage.setItem(LOCATION_PROMPT_KEY, "accepted");
-  document.getElementById("locationPrompt").style.display = "none";
+  locationOverlay.style.display = "none";
   requestBrowserLocation();
 });
 document.getElementById("locationDeclineBtn").addEventListener("click", ()=>{
   localStorage.setItem(LOCATION_PROMPT_KEY, "declined");
-  document.getElementById("locationPrompt").style.display = "none";
+  locationOverlay.style.display = "none";
 });
 
 const weatherCodes = {
