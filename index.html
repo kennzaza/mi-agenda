@@ -347,6 +347,13 @@
     <div id="clock" style="font-size:26px;color:#ddd;text-align:center;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;letter-spacing:1px;">
       --:--:--
     </div>
+    <div id="locationPrompt" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:12px;color:var(--muted);">
+      <div style="margin-bottom:8px;">¿Activar ubicación? Esto sirve para saber en qué zona colocar el pronóstico.</div>
+      <div style="display:flex;gap:8px;">
+        <button id="locationAcceptBtn" type="button" style="flex:1;padding:6px;font-size:12px;">Activar</button>
+        <button id="locationDeclineBtn" type="button" style="flex:1;padding:6px;font-size:12px;background:transparent;">No, gracias</button>
+      </div>
+    </div>
     <h2 id="weatherCityLabel">Clima · Berazategui</h2>
     <div id="weatherContent" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--muted);">
       Cargando...
@@ -1366,7 +1373,7 @@ async function reverseGeocodeCity(lat, lon){
   }
 }
 
-function initWeatherLocation(){
+function requestBrowserLocation(){
   if(!("geolocation" in navigator)){
     loadWeather();
     return;
@@ -1386,6 +1393,38 @@ function initWeatherLocation(){
     { timeout: 8000 }
   );
 }
+
+const LOCATION_PROMPT_KEY = "agenda_location_choice_v1";
+
+function initWeatherLocation(){
+  const choice = localStorage.getItem(LOCATION_PROMPT_KEY);
+  const promptEl = document.getElementById("locationPrompt");
+
+  if(choice === "accepted"){
+    promptEl.style.display = "none";
+    requestBrowserLocation();
+    return;
+  }
+  if(choice === "declined"){
+    promptEl.style.display = "none";
+    loadWeather();
+    return;
+  }
+
+  // Todavía no eligió: mostramos nuestro aviso propio primero
+  promptEl.style.display = "block";
+  loadWeather(); // mientras tanto, mostramos Berazategui por defecto
+}
+
+document.getElementById("locationAcceptBtn").addEventListener("click", ()=>{
+  localStorage.setItem(LOCATION_PROMPT_KEY, "accepted");
+  document.getElementById("locationPrompt").style.display = "none";
+  requestBrowserLocation();
+});
+document.getElementById("locationDeclineBtn").addEventListener("click", ()=>{
+  localStorage.setItem(LOCATION_PROMPT_KEY, "declined");
+  document.getElementById("locationPrompt").style.display = "none";
+});
 
 const weatherCodes = {
   0:"Despejado", 1:"Mayormente despejado", 2:"Parcialmente nublado", 3:"Nublado",
