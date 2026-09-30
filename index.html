@@ -347,7 +347,7 @@
     <div id="clock" style="font-size:26px;color:#ddd;text-align:center;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;letter-spacing:1px;">
       --:--:--
     </div>
-    <h2>Clima · Berazategui</h2>
+    <h2 id="weatherCityLabel">Clima · Berazategui</h2>
     <div id="weatherContent" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--muted);">
       Cargando...
     </div>
@@ -1348,9 +1348,44 @@ movieModalOverlay.addEventListener("click", (e)=>{
 
 renderRanking();
 
-// --- Clima (Berazategui, Buenos Aires) ---
-const WEATHER_LAT = -34.7636;
-const WEATHER_LON = -58.2119;
+// --- Clima (detecta ubicación automáticamente; si no se puede, usa Berazategui) ---
+let WEATHER_LAT = -34.7636;
+let WEATHER_LON = -58.2119;
+
+function setWeatherCityLabel(name){
+  document.getElementById("weatherCityLabel").textContent = "Clima · " + name;
+}
+
+async function reverseGeocodeCity(lat, lon){
+  try{
+    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=es`);
+    const data = await res.json();
+    return data.city || data.locality || data.principalSubdivision || "tu ubicación";
+  }catch(e){
+    return "tu ubicación";
+  }
+}
+
+function initWeatherLocation(){
+  if(!("geolocation" in navigator)){
+    loadWeather();
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    async (pos)=>{
+      WEATHER_LAT = pos.coords.latitude;
+      WEATHER_LON = pos.coords.longitude;
+      const city = await reverseGeocodeCity(WEATHER_LAT, WEATHER_LON);
+      setWeatherCityLabel(city);
+      loadWeather();
+    },
+    ()=>{
+      // Permiso denegado o error: nos quedamos con Berazategui
+      loadWeather();
+    },
+    { timeout: 8000 }
+  );
+}
 
 const weatherCodes = {
   0:"Despejado", 1:"Mayormente despejado", 2:"Parcialmente nublado", 3:"Nublado",
@@ -1399,7 +1434,7 @@ async function loadWeather(){
     alertBox.style.display = "none";
   }
 }
-loadWeather();
+initWeatherLocation();
 setInterval(loadWeather, 15 * 60 * 1000);
 
 function updateClock(){
