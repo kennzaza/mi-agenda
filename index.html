@@ -557,6 +557,15 @@
   </div>
 </div>
 
+<div id="updatesOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);align-items:center;justify-content:center;z-index:220;">
+  <div style="background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:22px;width:420px;max-width:90vw;max-height:80vh;overflow-y:auto;">
+    <h3 style="margin:0 0 4px 0;font-size:15px;color:#ddd;">Novedades de la web</h3>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Esto es lo que cambió desde la última vez que entraste.</div>
+    <div id="updatesList" style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px;"></div>
+    <button id="updatesCloseBtn" type="button" style="width:100%;">Entendido</button>
+  </div>
+</div>
+
 <div id="inAppAlertsOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);align-items:center;justify-content:center;z-index:210;">
   <div style="background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:22px;width:420px;max-width:90vw;max-height:80vh;overflow-y:auto;">
     <h3 style="margin:0 0 4px 0;font-size:15px;color:#ddd;">Tenés avisos pendientes</h3>
@@ -1503,6 +1512,57 @@ if("serviceWorker" in navigator){
   });
 }
 
+// --- Novedades de la web ---
+// Cada vez que hagamos un cambio importante, se agrega una entrada acá arriba de todo.
+const CHANGELOG = [
+  { id: "2026-09-30-alertas-y-novedades", items: [
+      "Los avisos de vencimiento ahora muestran el tiempo exacto que falta, o hace cuánto venció algo si ya pasó la fecha.",
+      "Nuevo cartel de novedades: te muestra qué cambió en la web desde tu última visita."
+  ]},
+  { id: "2026-09-30-funciones-nuevas", items: [
+      "Se agregó autodetección de zona para el uso del pronóstico.",
+      "Se agregaron rankings de películas.",
+      "Se agregó personalización de colores en la web.",
+      "Se agregaron notificaciones integradas en la web."
+  ]}
+];
+const CHANGELOG_SEEN_KEY = "agenda_changelog_seen_v1";
+
+function showUpdatesIfAny(onDone){
+  const lastSeen = localStorage.getItem(CHANGELOG_SEEN_KEY);
+  const latestId = CHANGELOG[CHANGELOG.length - 1].id;
+
+  if(lastSeen === null){
+    // Primera vez que existe este sistema: no mostramos todo el historial, arrancamos desde acá.
+    localStorage.setItem(CHANGELOG_SEEN_KEY, latestId);
+    onDone();
+    return;
+  }
+
+  const lastSeenIndex = CHANGELOG.findIndex(c => c.id === lastSeen);
+  const newEntries = CHANGELOG.slice(lastSeenIndex + 1);
+
+  if(newEntries.length === 0){
+    onDone();
+    return;
+  }
+
+  document.getElementById("updatesList").innerHTML = newEntries.map(entry => `
+    <div>
+      <ul style="margin:0;padding-left:18px;color:#ccc;font-size:13px;line-height:1.6;">
+        ${entry.items.map(txt => `<li>${txt}</li>`).join("")}
+      </ul>
+    </div>
+  `).join("");
+
+  document.getElementById("updatesOverlay").style.display = "flex";
+  document.getElementById("updatesCloseBtn").onclick = ()=>{
+    localStorage.setItem(CHANGELOG_SEEN_KEY, latestId);
+    document.getElementById("updatesOverlay").style.display = "none";
+    onDone();
+  };
+}
+
 // --- Avisos dentro de la app (reemplaza a las notificaciones del navegador) ---
 // Se muestran en un cartel apenas entrás a la página (o si pasó un día nuevo desde la última visita).
 // Avisos: 3 días antes, 1 día antes, 12 horas antes para todo.
@@ -1519,11 +1579,33 @@ function markFired(key){
 }
 
 const CHECKPOINTS = [
-  { key: "3d",  msBefore: 3 * 24 * 60 * 60 * 1000, label: "En 3 días" },
-  { key: "1d",  msBefore: 1 * 24 * 60 * 60 * 1000, label: "Mañana" },
-  { key: "12h", msBefore: 12 * 60 * 60 * 1000,     label: "En 12 horas" }
+  { key: "3d",  msBefore: 3 * 24 * 60 * 60 * 1000 },
+  { key: "1d",  msBefore: 1 * 24 * 60 * 60 * 1000 },
+  { key: "12h", msBefore: 12 * 60 * 60 * 1000 },
+  { key: "vencido", msBefore: 0 }
 ];
-const TRIAL_EXTRA_CHECKPOINT = { key: "2d", msBefore: 2 * 24 * 60 * 60 * 1000, label: "En 2 días" };
+const TRIAL_EXTRA_CHECKPOINT = { key: "2d", msBefore: 2 * 24 * 60 * 60 * 1000 };
+
+// Arma un texto con el tiempo exacto que falta, o hace cuánto venció.
+function formatTimeRemaining(dueDate, now){
+  const diffMs = dueDate.getTime() - now.getTime();
+  const absMs = Math.abs(diffMs);
+  const days = Math.floor(absMs / (24*60*60*1000));
+  const hours = Math.floor((absMs % (24*60*60*1000)) / (60*60*1000));
+
+  let duration;
+  if(days === 0 && hours === 0){
+    duration = "menos de 1 hora";
+  } else if(days === 0){
+    duration = `${hours} hora${hours === 1 ? "" : "s"}`;
+  } else if(hours === 0){
+    duration = `${days} día${days === 1 ? "" : "s"}`;
+  } else {
+    duration = `${days} día${days === 1 ? "" : "s"} y ${hours} hora${hours === 1 ? "" : "s"}`;
+  }
+
+  return diffMs <= 0 ? `Venció hace ${duration}` : `Faltan ${duration}`;
+}
 
 function checkDueAndShowAlerts(){
   const now = new Date();
@@ -1536,9 +1618,9 @@ function checkDueAndShowAlerts(){
     checkpoints.forEach(cp=>{
       const key = i.id + "-" + cp.key;
       const triggerTime = new Date(dueDate.getTime() - cp.msBefore);
-      const graceEnd = new Date(dueDate.getTime() + 24*60*60*1000);
+      const graceEnd = new Date(dueDate.getTime() + 3*24*60*60*1000);
       if(now >= triggerTime && now <= graceEnd && !fired.has(key)){
-        pending.push({ key, title: i.title, type: i.type, label: cp.label, notes: i.notes });
+        pending.push({ key, title: i.title, type: i.type, timeText: formatTimeRemaining(dueDate, now), notes: i.notes });
       }
     });
   });
@@ -1548,8 +1630,8 @@ function checkDueAndShowAlerts(){
     listEl.innerHTML = pending.map(p => `
       <div class="item type-${p.type}">
         <div class="info">
-          <div class="title">${p.label}: ${p.title}</div>
-          <div class="meta">${typeLabels[p.type]}${p.notes ? " · " + p.notes : ""}</div>
+          <div class="title">${p.title}</div>
+          <div class="meta">${p.timeText} · ${typeLabels[p.type]}${p.notes ? " · " + p.notes : ""}</div>
         </div>
       </div>
     `).join("");
@@ -1561,7 +1643,7 @@ function checkDueAndShowAlerts(){
   }
 }
 
-checkDueAndShowAlerts();
+showUpdatesIfAny(checkDueAndShowAlerts);
 </script>
 </body>
 </html>
