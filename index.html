@@ -222,6 +222,48 @@
   }
   .warnBox strong{color:#eecb9a;}
 
+  /* --- Series y películas --- */
+  #tmdbKeyBox{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;}
+  #tmdbKeyBox input{margin-top:6px;}
+  #tmdbKeyBox .sub{font-size:11px;color:var(--muted);margin-top:6px;}
+
+  #movieSearchRow{display:flex;gap:8px;margin-bottom:14px;}
+  #movieSearchRow input{flex:1;background:#181818;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px;}
+
+  #movieSearchResults{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-bottom:24px;}
+  .movieResultCard{background:var(--panel2);border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;}
+  .movieResultCard img{width:100%;height:170px;object-fit:cover;display:block;background:#111;}
+  .movieResultCard .noPoster{width:100%;height:170px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;text-align:center;padding:8px;}
+  .movieResultCard .info{padding:8px;}
+  .movieResultCard .title{font-size:12px;color:#ddd;line-height:1.3;}
+  .movieResultCard .year{font-size:10px;color:var(--muted);margin-top:2px;}
+
+  #rankingGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:14px;}
+  .rankCard{background:var(--panel2);border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;position:relative;}
+  .rankCard img{width:100%;height:170px;object-fit:cover;display:block;background:#111;}
+  .rankCard .noPoster{width:100%;height:170px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;text-align:center;padding:8px;}
+  .rankCard .info{padding:8px;}
+  .rankCard .title{font-size:12px;color:#ddd;line-height:1.3;}
+  .rankCard .stars{font-size:12px;color:#c9a84d;margin-top:4px;letter-spacing:1px;}
+  .rankPos{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.7);color:#ddd;font-size:11px;padding:2px 7px;border-radius:20px;}
+
+  #movieModalOverlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
+    align-items:center;justify-content:center;z-index:150;
+  }
+  #movieModalOverlay.open{display:flex;}
+  #movieModalBox{
+    background:var(--panel2);border:1px solid var(--border);border-radius:10px;
+    padding:20px;width:420px;max-width:92vw;max-height:88vh;overflow-y:auto;
+  }
+  #movieModalBox .modalTop{display:flex;gap:14px;}
+  #movieModalBox img{width:120px;height:180px;object-fit:cover;border-radius:6px;background:#111;flex-shrink:0;}
+  #movieModalBox .noPoster{width:120px;height:180px;border-radius:6px;background:#111;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;text-align:center;padding:8px;flex-shrink:0;}
+  #movieModalBox h3{margin:0 0 4px 0;font-size:15px;color:#ddd;}
+  #starPicker{display:flex;gap:6px;margin-top:12px;}
+  .starBtn{background:transparent;border:none;font-size:26px;color:#444;padding:0;min-height:auto;cursor:pointer;}
+  .starBtn.filled{color:#c9a84d;}
+
   /* --- Estadísticas --- */
   .statCard{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;}
   .statCard .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
@@ -310,6 +352,7 @@
     <button class="mtab" data-view="view-debts">Deudas</button>
     <button class="mtab" data-view="view-goals">Metas</button>
     <button class="mtab" data-view="view-stats">Estadísticas</button>
+    <button class="mtab" data-view="view-movies">Series y películas</button>
   </div>
 
   <!-- Resumen del día -->
@@ -413,6 +456,50 @@
     </div>
   </div>
 
+  <div class="view" id="view-movies">
+    <h2>Series y películas</h2>
+
+    <div id="tmdbKeyBox">
+      <label>Clave de TMDB (una sola vez)</label>
+      <input id="tmdbKeyInput" type="text" placeholder="Pegá acá tu API Key de TMDB">
+      <button id="tmdbKeySave" type="button" style="margin-top:8px;">Guardar clave</button>
+      <div class="sub">Es gratis. Pedila en themoviedb.org → creá una cuenta → Configuración → API → "Create" → copiá la "API Key (v3 auth)" y pegala acá. Solo lo hacés una vez.</div>
+    </div>
+
+    <div id="movieSearchRow">
+      <input id="movieSearchInput" type="text" placeholder="Buscar película o serie por nombre...">
+      <button id="movieSearchBtn" type="button">Buscar</button>
+    </div>
+    <div id="movieSearchResults"></div>
+
+    <h2>Tu ranking</h2>
+    <div id="rankingGrid"></div>
+  </div>
+
+</div>
+
+<div id="movieModalOverlay">
+  <div id="movieModalBox">
+    <div class="modalTop">
+      <img id="movieModalPoster" src="" alt="" style="display:none;">
+      <div id="movieModalNoPoster" class="noPoster" style="display:none;">Sin imagen</div>
+      <div>
+        <h3 id="movieModalTitle"></h3>
+        <div class="sub" id="movieModalYear"></div>
+        <div id="starPicker">
+          <button class="starBtn" data-star="1" type="button">★</button>
+          <button class="starBtn" data-star="2" type="button">★</button>
+          <button class="starBtn" data-star="3" type="button">★</button>
+          <button class="starBtn" data-star="4" type="button">★</button>
+          <button class="starBtn" data-star="5" type="button">★</button>
+        </div>
+      </div>
+    </div>
+    <div class="modalActions">
+      <button id="movieModalDelete" type="button" style="margin-right:auto;background:transparent;border:1px solid var(--border);color:#c77;">Quitar del ranking</button>
+      <button id="movieModalClose" type="button">Cerrar</button>
+    </div>
+  </div>
 </div>
 
 <div id="modalOverlay">
@@ -985,6 +1072,174 @@ function renderStats(){
 
 rollForwardRecurring();
 render();
+
+// --- Series y películas (TMDB) ---
+const TMDB_KEY_STORAGE = "agenda_tmdb_key_v1";
+const RANKING_KEY = "agenda_movie_ranking_v1";
+let tmdbKey = localStorage.getItem(TMDB_KEY_STORAGE) || "";
+let ranking = [];
+try { ranking = JSON.parse(localStorage.getItem(RANKING_KEY)) || []; } catch(e) { ranking = []; }
+
+document.getElementById("tmdbKeyInput").value = tmdbKey;
+document.getElementById("tmdbKeySave").addEventListener("click", ()=>{
+  tmdbKey = document.getElementById("tmdbKeyInput").value.trim();
+  localStorage.setItem(TMDB_KEY_STORAGE, tmdbKey);
+  alert(tmdbKey ? "Clave guardada." : "Clave borrada.");
+});
+
+function saveRanking(){ localStorage.setItem(RANKING_KEY, JSON.stringify(ranking)); }
+
+async function searchMovies(){
+  const query = document.getElementById("movieSearchInput").value.trim();
+  const resultsEl = document.getElementById("movieSearchResults");
+  if(!tmdbKey){
+    resultsEl.innerHTML = `<div class="empty-msg">Primero pegá y guardá tu clave de TMDB arriba.</div>`;
+    return;
+  }
+  if(!query) return;
+  resultsEl.innerHTML = `<div class="empty-msg">Buscando...</div>`;
+  try{
+    const url = `https://api.themoviedb.org/3/search/multi?api_key=${encodeURIComponent(tmdbKey)}&language=es-ES&query=${encodeURIComponent(query)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.status_code){
+      resultsEl.innerHTML = `<div class="empty-msg">Clave inválida o error de TMDB. Revisala.</div>`;
+      return;
+    }
+    const results = (data.results || []).filter(r => r.media_type === "movie" || r.media_type === "tv").slice(0, 12);
+    if(results.length === 0){
+      resultsEl.innerHTML = `<div class="empty-msg">No se encontraron resultados.</div>`;
+      return;
+    }
+    resultsEl.innerHTML = "";
+    results.forEach(r=>{
+      const title = r.title || r.name || "Sin título";
+      const date = r.release_date || r.first_air_date || "";
+      const year = date ? date.slice(0,4) : "";
+      const card = document.createElement("div");
+      card.className = "movieResultCard";
+      card.innerHTML = r.poster_path
+        ? `<img src="https://image.tmdb.org/t/p/w200${r.poster_path}" alt="${title}">`
+        : `<div class="noPoster">Sin imagen</div>`;
+      card.innerHTML += `<div class="info"><div class="title">${title}</div><div class="year">${year}</div></div>`;
+      card.addEventListener("click", ()=>{
+        addToRanking({
+          id: r.id, mediaType: r.media_type, title, year,
+          poster_path: r.poster_path || null, rating: 0
+        });
+      });
+      resultsEl.appendChild(card);
+    });
+  }catch(e){
+    resultsEl.innerHTML = `<div class="empty-msg">Error al buscar. Revisá tu conexión o la clave.</div>`;
+  }
+}
+document.getElementById("movieSearchBtn").addEventListener("click", searchMovies);
+document.getElementById("movieSearchInput").addEventListener("keydown", (e)=>{
+  if(e.key === "Enter"){ e.preventDefault(); searchMovies(); }
+});
+
+function addToRanking(entry){
+  const exists = ranking.find(m => m.id === entry.id && m.mediaType === entry.mediaType);
+  if(exists){
+    openMovieModal(exists.id, exists.mediaType);
+    return;
+  }
+  ranking.push({ ...entry, addedAt: Date.now() });
+  saveRanking();
+  renderRanking();
+  openMovieModal(entry.id, entry.mediaType);
+}
+
+function renderRanking(){
+  const grid = document.getElementById("rankingGrid");
+  grid.innerHTML = "";
+  if(ranking.length === 0){
+    grid.innerHTML = `<div class="empty-msg">Todavía no agregaste nada al ranking.</div>`;
+    return;
+  }
+  const sorted = [...ranking].sort((a,b)=> (b.rating - a.rating) || (b.addedAt - a.addedAt));
+  sorted.forEach((m, idx)=>{
+    const card = document.createElement("div");
+    card.className = "rankCard";
+    const stars = "★".repeat(m.rating) + "☆".repeat(5 - m.rating);
+    card.innerHTML = `
+      <span class="rankPos">#${idx+1}</span>
+      ${m.poster_path
+        ? `<img src="https://image.tmdb.org/t/p/w200${m.poster_path}" alt="${m.title}">`
+        : `<div class="noPoster">Sin imagen</div>`}
+      <div class="info">
+        <div class="title">${m.title}</div>
+        <div class="stars">${stars}</div>
+      </div>
+    `;
+    card.addEventListener("click", ()=> openMovieModal(m.id, m.mediaType));
+    grid.appendChild(card);
+  });
+}
+
+let currentMovieKey = null;
+const movieModalOverlay = document.getElementById("movieModalOverlay");
+
+function openMovieModal(id, mediaType){
+  const m = ranking.find(x => x.id === id && x.mediaType === mediaType);
+  if(!m) return;
+  currentMovieKey = { id, mediaType };
+  document.getElementById("movieModalTitle").textContent = m.title;
+  document.getElementById("movieModalYear").textContent = m.year || "";
+  const img = document.getElementById("movieModalPoster");
+  const noImg = document.getElementById("movieModalNoPoster");
+  if(m.poster_path){
+    img.src = `https://image.tmdb.org/t/p/w300${m.poster_path}`;
+    img.style.display = "block";
+    noImg.style.display = "none";
+  } else {
+    img.style.display = "none";
+    noImg.style.display = "flex";
+  }
+  updateStarButtons(m.rating);
+  movieModalOverlay.classList.add("open");
+}
+
+function updateStarButtons(rating){
+  document.querySelectorAll(".starBtn").forEach(btn=>{
+    btn.classList.toggle("filled", parseInt(btn.dataset.star) <= rating);
+  });
+}
+
+document.querySelectorAll(".starBtn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    if(!currentMovieKey) return;
+    const m = ranking.find(x => x.id === currentMovieKey.id && x.mediaType === currentMovieKey.mediaType);
+    if(!m) return;
+    const newRating = parseInt(btn.dataset.star);
+    m.rating = m.rating === newRating ? 0 : newRating; // tocar la misma estrella la saca
+    saveRanking();
+    updateStarButtons(m.rating);
+    renderRanking();
+  });
+});
+
+document.getElementById("movieModalClose").addEventListener("click", ()=>{
+  movieModalOverlay.classList.remove("open");
+  currentMovieKey = null;
+});
+document.getElementById("movieModalDelete").addEventListener("click", ()=>{
+  if(!currentMovieKey) return;
+  ranking = ranking.filter(x => !(x.id === currentMovieKey.id && x.mediaType === currentMovieKey.mediaType));
+  saveRanking();
+  movieModalOverlay.classList.remove("open");
+  currentMovieKey = null;
+  renderRanking();
+});
+movieModalOverlay.addEventListener("click", (e)=>{
+  if(e.target === movieModalOverlay){
+    movieModalOverlay.classList.remove("open");
+    currentMovieKey = null;
+  }
+});
+
+renderRanking();
 
 // --- Clima (Berazategui, Buenos Aires) ---
 const WEATHER_LAT = -34.7636;
