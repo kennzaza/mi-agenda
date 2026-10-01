@@ -537,6 +537,11 @@
     <h2 style="margin-top:22px;">Últimas sesiones</h2>
     <div id="studySessionsList"></div>
   </div>
+  
+  
+  <div class="warnBox" style="margin-top:22px;">
+    <strong>En desarrollo:</strong> esta sección todavía se está construyendo. Pueden cambiar cosas o aparecer errores.
+  </div>
 
   <div class="view" id="view-movies">
     <h2>Series y películas</h2>
@@ -669,6 +674,20 @@
   </div>
 </div>
 
+  <div id="studyPinOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);align-items:center;justify-content:center;z-index:230;">
+  <div class="modalBox">
+    <h3>Sección protegida</h3>
+    <div class="sub">Ingresá la clave para entrar a Estudio.</div>
+    <input id="studyPinInput" type="password" inputmode="numeric" maxlength="4" placeholder="Clave" style="width:100%;">
+    <div id="studyPinError" style="font-size:12px;color:#c77;min-height:16px;margin-top:6px;"></div>
+    <div class="modalActions">
+      <button id="studyPinCancel" type="button">Cancelar</button>
+      <button id="studyPinConfirm" type="button">Entrar</button>
+    </div>
+  </div>
+</div>
+
+  
 <div id="payModalOverlay">
   <div class="modalBox">
     <h3>Registrar pago</h3>
@@ -768,57 +787,62 @@ function rollForwardRecurring(){
 }
 
 // --- Pestañas principales ---
+const STUDY_PIN = "1312";
+const STUDY_UNLOCK_KEY = "agenda_study_unlocked_v1";
+let studyUnlocked = false;
+try { studyUnlocked = sessionStorage.getItem(STUDY_UNLOCK_KEY) === "1"; } catch(e){}
+
+function activateTab(btn){
+  document.querySelectorAll(".mtab").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById(btn.dataset.view).classList.add("active");
+}
+
+const studyPinOverlay = document.getElementById("studyPinOverlay");
+const studyPinInput = document.getElementById("studyPinInput");
+const studyPinError = document.getElementById("studyPinError");
+let pendingStudyTab = null;
+
+function openStudyPin(btn){
+  pendingStudyTab = btn;
+  studyPinInput.value = "";
+  studyPinError.textContent = "";
+  studyPinOverlay.style.display = "flex";
+  studyPinInput.focus();
+}
+function closeStudyPin(){
+  studyPinOverlay.style.display = "none";
+  pendingStudyTab = null;
+}
+function confirmStudyPin(){
+  if(studyPinInput.value === STUDY_PIN){
+    studyUnlocked = true;
+    try { sessionStorage.setItem(STUDY_UNLOCK_KEY, "1"); } catch(e){}
+    const btn = pendingStudyTab;
+    closeStudyPin();
+    if(btn) activateTab(btn);
+  } else {
+    studyPinError.textContent = "Clave incorrecta.";
+    studyPinInput.value = "";
+    studyPinInput.focus();
+  }
+}
+
 document.querySelectorAll(".mtab").forEach(btn=>{
   btn.addEventListener("click", ()=>{
-    document.querySelectorAll(".mtab").forEach(b=>b.classList.remove("active"));
-    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById(btn.dataset.view).classList.add("active");
+    if(btn.dataset.view === "view-study" && !studyUnlocked){
+      openStudyPin(btn);
+      return;
+    }
+    activateTab(btn);
   });
 });
 
-document.getElementById("type").addEventListener("change", (e)=>{
-  const t = e.target.value;
-  document.getElementById("dateLabel").textContent =
-    t === "trial" ? "Fecha límite para cancelar" : "Fecha";
-  const amountField = document.getElementById("amountField");
-  const amountLabel = document.getElementById("amountLabel");
-  if(t === "debt"){
-    amountField.style.display = "block";
-    amountLabel.textContent = "Monto total de la deuda";
-  } else if(t === "subscription"){
-    amountField.style.display = "block";
-    amountLabel.textContent = "Costo mensual (opcional)";
-  } else {
-    amountField.style.display = "none";
-  }
-  document.getElementById("repeatField").style.display = t === "trial" ? "none" : "block";
-});
-
-document.getElementById("form").addEventListener("submit", (e)=>{
-  e.preventDefault();
-  const title = document.getElementById("title").value.trim();
-  const type = document.getElementById("type").value;
-  const date = document.getElementById("date").value;
-  const notes = document.getElementById("notes").value.trim();
-  const amount = document.getElementById("amount").value;
-  const repeat = document.getElementById("repeat").value;
-  if(!title || !date) return;
-
-  const newItem = { id: Date.now().toString(), title, type, date, notes, repeat: type === "trial" ? "none" : repeat };
-  if(type === "debt"){
-    newItem.amount = amount ? parseFloat(amount) : 0;
-    newItem.payments = [];
-  } else if(type === "subscription" && amount){
-    newItem.amount = parseFloat(amount);
-  }
-  items.push(newItem);
-  save();
-  document.getElementById("form").reset();
-  document.getElementById("dateLabel").textContent = "Fecha";
-  document.getElementById("amountField").style.display = "none";
-  render();
-});
+document.getElementById("studyPinConfirm").addEventListener("click", confirmStudyPin);
+document.getElementById("studyPinCancel").addEventListener("click", closeStudyPin);
+studyPinInput.addEventListener("keydown", (e)=>{ if(e.key === "Enter") confirmStudyPin(); });
+studyPinOverlay.addEventListener("click", (e)=>{ if(e.target === studyPinOverlay) closeStudyPin(); });
 
 function removeItem(id){
   items = items.filter(i => i.id !== id);
