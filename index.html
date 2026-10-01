@@ -313,6 +313,18 @@
   #reviewRatings button{flex:1;padding:10px 4px;font-size:12px;}
   #reviewRatings small{display:block;color:var(--muted);font-size:10px;margin-top:2px;}
 
+  /* --- Generar con IA --- */
+  #aiForm{margin-bottom:14px;}
+  #aiForm textarea{background:#181818;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px;font-family:inherit;min-height:110px;resize:vertical;}
+  #aiForm .levelInfo{font-size:12px;color:#cfd8a8;}
+  #aiDrafts{margin-bottom:18px;}
+  .draftCard{background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--c-study);border-radius:8px;padding:12px 14px;margin-bottom:8px;}
+  .draftCard .q{font-size:14px;color:#eee;margin-bottom:6px;white-space:pre-wrap;}
+  .draftCard .a{font-size:13px;color:#cfd8a8;white-space:pre-wrap;}
+  .draftCard .actions{display:flex;gap:8px;margin-top:10px;}
+  .draftCard .actions button{padding:6px 12px;font-size:12px;}
+  .backupRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+
   /* --- Pantallas chicas --- */
   @media (max-width:800px){
     body{flex-direction:column;}
@@ -544,6 +556,25 @@
       <div class="stat" id="cardsStat">0 tarjetas</div>
       <button id="startReviewBtn" type="button">Repasar</button>
     </div>
+    <form id="aiForm">
+      <h2 style="margin:0;">Generar con IA</h2>
+      <label>Materia</label>
+      <select id="aiSubject"></select>
+      <div class="levelInfo" id="aiLevelInfo"></div>
+      <label>Apuntes o tema (pegá el texto)</label>
+      <textarea id="aiNotes" placeholder="Pegá acá tus apuntes o el texto que querés estudiar..."></textarea>
+      <label>Cantidad de preguntas</label>
+      <select id="aiCount">
+        <option value="3">3</option>
+        <option value="5" selected>5</option>
+        <option value="8">8</option>
+        <option value="10">10</option>
+      </select>
+      <button type="submit" id="aiGenBtn">Generar preguntas</button>
+      <div class="focusMsg" id="aiMsg"></div>
+    </form>
+    <div id="aiDrafts"></div>
+
     <form id="newCardForm">
       <label>Materia</label>
       <select id="cardSubject"></select>
@@ -627,6 +658,16 @@
 
     </div>
     <button id="resetColorsBtn" type="button">Restablecer colores originales</button>
+
+    <h2 style="margin-top:28px;">Copia de seguridad</h2>
+    <div style="font-size:12px;color:var(--muted);line-height:1.5;">
+      Tus datos se guardan solo en este navegador. Descargá una copia de vez en cuando, o antes de limpiar los datos del navegador.
+    </div>
+    <div class="backupRow">
+      <button id="exportBtn" type="button">Descargar copia</button>
+      <button id="importBtn" type="button">Restaurar desde archivo</button>
+      <input id="importFile" type="file" accept=".json,application/json" style="display:none;">
+    </div>
   </div>
 
 </div>
@@ -1724,6 +1765,8 @@ function removeSubject(id){
   subjects = subjects.filter(x => x.id !== id);
   sessions = sessions.filter(x => x.subjectId !== id);
   cards = cards.filter(x => x.subjectId !== id);
+  delete levels[id];
+  saveLevels();
   saveCards();
   saveSubjects();
   saveSessions();
@@ -1995,6 +2038,7 @@ function rateCard(q){
   } else {
     card.due = addDays(todayStr(), next.interval);
   }
+  recordAnswer(card.subjectId, q);
   reviewAnswered++;
   saveCards();
   nextReviewCard();
@@ -2004,14 +2048,214 @@ document.getElementById("startReviewBtn").addEventListener("click", openReview);
 document.getElementById("reviewShowBtn").addEventListener("click", showReviewAnswer);
 document.getElementById("reviewExitBtn").addEventListener("click", closeReview);
 
+// --- Nivel adaptativo por materia ---
+const LEVELS_KEY = "agenda_levels_v1";
+let levels = {};
+try { levels = JSON.parse(localStorage.getItem(LEVELS_KEY)) || {}; } catch(e) { levels = {}; }
+function saveLevels(){ localStorage.setItem(LEVELS_KEY, JSON.stringify(levels)); }
+
+const LEVEL_NAMES = {
+  1: "Recordar (definiciones y datos)",
+  2: "Comprender (explicar con tus palabras)",
+  3: "Aplicar (usar el concepto en un caso)",
+  4: "Analizar (relacionar y comparar)",
+  5: "Transferir (casos nuevos y complejos)"
+};
+
+function getLevel(subjectId){
+  return (levels[subjectId] && levels[subjectId].level) || 2;
+}
+
+// Cada respuesta suma puntos: otra vez = 0, difícil = 0.5, bien/fácil = 1.
+// Con 8 o más respuestas recientes: promedio >= 85% sube de nivel, <= 50% baja.
+function recordAnswer(subjectId, q){
+  if(!levels[subjectId]) levels[subjectId] = { level: 2, recent: [] };
+  const entry = levels[subjectId];
+  const points = q === "again" ? 0 : q === "hard" ? 0.5 : 1;
+  entry.recent.push(points);
+  if(entry.recent.length > 10) entry.recent.shift();
+  if(entry.recent.length >= 8){
+    const avg = entry.recent.reduce((a,b)=> a + b, 0) / entry.recent.length;
+    if(avg >= 0.85 && entry.level < 5){ entry.level++; entry.recent = []; }
+    else if(avg <= 0.5 && entry.level > 1){ entry.level--; entry.recent = []; }
+  }
+  saveLevels();
+}
+
+// --- Generar tarjetas con IA ---
+// Pegá acá la dirección de tu servidor intermedio (Cloudflare Worker), por ejemplo:
+// const AI_ENDPOINT = "https://agenda-ia.tuusuario.workers.dev";
+const AI_ENDPOINT = "";
+
+let aiDrafts = [];
+let aiDraftSubjectId = null;
+let aiDraftLevel = 2;
+
+function renderAiForm(){
+  const select = document.getElementById("aiSubject");
+  const prev = select.value;
+  if(subjects.length === 0){
+    select.innerHTML = `<option value="">(Creá una materia primero)</option>`;
+  } else {
+    select.innerHTML = subjects.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+    if(subjects.some(s => s.id === prev)) select.value = prev;
+  }
+  updateAiLevelInfo();
+}
+
+function updateAiLevelInfo(){
+  const id = document.getElementById("aiSubject").value;
+  const info = document.getElementById("aiLevelInfo");
+  if(!id){ info.textContent = ""; return; }
+  const lv = getLevel(id);
+  info.textContent = "Nivel actual: " + lv + " de 5 · " + LEVEL_NAMES[lv];
+}
+
+function renderAiDrafts(){
+  const box = document.getElementById("aiDrafts");
+  if(aiDrafts.length === 0){ box.innerHTML = ""; return; }
+  box.innerHTML = aiDrafts.map((c, i) => `
+    <div class="draftCard">
+      <div class="q">${escapeHtml(c.front)}</div>
+      <div class="a">${escapeHtml(c.back)}</div>
+      <div class="actions">
+        <button type="button" data-act="accept" data-i="${i}">Aceptar</button>
+        <button type="button" data-act="discard" data-i="${i}" style="background:transparent;">Descartar</button>
+      </div>
+    </div>
+  `).join("") + `<button type="button" id="aiAcceptAll">Aceptar todas</button>`;
+
+  box.querySelectorAll("button[data-act]").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      const i = parseInt(b.dataset.i);
+      if(b.dataset.act === "accept") acceptDraft(i);
+      aiDrafts.splice(i, 1);
+      renderAiDrafts();
+      renderCards();
+    });
+  });
+  const all = document.getElementById("aiAcceptAll");
+  if(all) all.addEventListener("click", ()=>{
+    for(let i = 0; i < aiDrafts.length; i++) acceptDraft(i);
+    aiDrafts = [];
+    renderAiDrafts();
+    renderCards();
+  });
+}
+
+function acceptDraft(i){
+  const d = aiDrafts[i];
+  if(!d || !aiDraftSubjectId) return;
+  cards.push({
+    id: Date.now().toString() + "-" + i, subjectId: aiDraftSubjectId,
+    front: d.front, back: d.back,
+    ease: 2.5, interval: 0, reps: 0,
+    due: todayStr(), createdAt: Date.now() + i, level: aiDraftLevel, ai: true
+  });
+  saveCards();
+}
+
+document.getElementById("aiSubject").addEventListener("change", updateAiLevelInfo);
+
+document.getElementById("aiForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const msg = document.getElementById("aiMsg");
+  const btn = document.getElementById("aiGenBtn");
+  if(!AI_ENDPOINT){ msg.textContent = "Falta configurar la dirección del servidor (AI_ENDPOINT)."; return; }
+  const subjectId = document.getElementById("aiSubject").value;
+  const notes = document.getElementById("aiNotes").value.trim();
+  if(!subjectId){ msg.textContent = "Primero creá una materia."; return; }
+  if(notes.length < 40){ msg.textContent = "Pegá un texto un poco más largo (mínimo 40 caracteres)."; return; }
+  if(notes.length > 6000){ msg.textContent = "El texto es muy largo (máximo 6000 caracteres). Pegalo en partes."; return; }
+
+  const subj = subjects.find(s => s.id === subjectId);
+  const level = getLevel(subjectId);
+  // Tarjetas que más te cuestan en esta materia: se las pedimos a la IA como foco
+  const weak = cards
+    .filter(c => c.subjectId === subjectId && c.ease < 2.3)
+    .sort((a,b)=> a.ease - b.ease)
+    .slice(0, 5)
+    .map(c => c.front);
+
+  btn.disabled = true;
+  msg.textContent = "Generando preguntas...";
+  try{
+    const res = await fetch(AI_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subject: subj ? subj.name : "",
+        notes,
+        count: parseInt(document.getElementById("aiCount").value),
+        level,
+        weak
+      })
+    });
+    const data = await res.json();
+    if(!res.ok || !Array.isArray(data.cards)) throw new Error(data.error || "Error del servidor");
+    aiDrafts = data.cards
+      .map(c => ({ front: String(c.front || "").trim(), back: String(c.back || "").trim() }))
+      .filter(c => c.front && c.back);
+    aiDraftSubjectId = subjectId;
+    aiDraftLevel = level;
+    msg.textContent = aiDrafts.length + " borrador(es) listos. Revisalos antes de aceptarlos.";
+    renderAiDrafts();
+  }catch(err){
+    msg.textContent = "No se pudo generar: " + err.message;
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+// --- Copia de seguridad ---
+document.getElementById("exportBtn").addEventListener("click", ()=>{
+  const data = {};
+  Object.keys(localStorage).filter(k => k.startsWith("agenda_")).forEach(k=>{
+    data[k] = localStorage.getItem(k);
+  });
+  const blob = new Blob([JSON.stringify({ app: "agenda", exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "agenda-copia-" + todayStr() + ".json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=> URL.revokeObjectURL(a.href), 1000);
+});
+
+document.getElementById("importBtn").addEventListener("click", ()=> document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change", (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const parsed = JSON.parse(reader.result);
+      if(!parsed || parsed.app !== "agenda" || typeof parsed.data !== "object") throw new Error("formato");
+      if(!confirm("Esto reemplaza todos los datos actuales por los del archivo. ¿Continuar?")) return;
+      Object.keys(localStorage).filter(k => k.startsWith("agenda_")).forEach(k => localStorage.removeItem(k));
+      Object.entries(parsed.data).forEach(([k, v])=>{
+        if(k.startsWith("agenda_") && typeof v === "string") localStorage.setItem(k, v);
+      });
+      location.reload();
+    }catch(err){
+      alert("El archivo no es una copia de seguridad válida.");
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+});
+
 // Cada vez que se redibuja Estudio (materias nuevas o borradas), también se redibujan las tarjetas
 const renderStudyBase = renderStudy;
 renderStudy = function(){
   renderStudyBase();
   renderCards();
+  renderAiForm();
 };
 
 renderCards();
+renderAiForm();
 
 // --- Clima (detecta ubicación automáticamente; si no se puede, usa Berazategui) ---
 let WEATHER_LAT = -34.7636;
