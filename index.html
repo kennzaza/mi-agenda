@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Agenda</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#141414">
@@ -283,6 +284,29 @@
   .statCard .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
   .statCard .value{font-size:22px;color:#ddd;margin-top:6px;}
   .statCard .sub{font-size:11px;color:var(--muted);margin-top:4px;}
+
+  /* --- Estudio --- */
+  :root{--c-study:#8f9e5a;}
+  .mtab[data-view="view-study"].active{border-bottom-color:var(--c-study);}
+  #newSubjectForm{margin-bottom:18px;}
+  .focusBox{background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--c-study);border-radius:8px;padding:20px;margin-bottom:22px;text-align:center;}
+  #focusDisplay{font-size:64px;letter-spacing:2px;color:#eee;margin:8px 0 16px 0;font-variant-numeric:tabular-nums;}
+  .focusControls{display:flex;gap:12px;justify-content:center;margin-bottom:14px;text-align:left;flex-wrap:wrap;}
+  .focusControls > div{display:flex;flex-direction:column;gap:4px;}
+  .focusControls input,.focusControls select{min-width:130px;}
+  .focusButtons{display:flex;gap:8px;justify-content:center;}
+  .focusButtons button{min-width:120px;}
+  .focusMsg{font-size:12px;color:var(--muted);min-height:16px;}
+
+  /* --- Pantallas chicas --- */
+  @media (max-width:800px){
+    body{flex-direction:column;}
+    #sidebar{width:100%;border-right:none;border-bottom:1px solid var(--border);}
+    #main{padding:14px;}
+    .summaryGrid{grid-template-columns:1fr;}
+    .day{min-height:56px;}
+    #focusDisplay{font-size:48px;}
+  }
 </style>
 </head>
 <body>
@@ -365,6 +389,7 @@
     <button class="mtab" data-view="view-debts">Deudas</button>
     <button class="mtab" data-view="view-goals">Metas</button>
     <button class="mtab" data-view="view-stats">Estadísticas</button>
+    <button class="mtab" data-view="view-study">Estudio</button>
     <button class="mtab" data-view="view-movies">Series y películas</button>
     <button class="mtab" data-view="view-visual">Visual</button>
   </div>
@@ -468,6 +493,49 @@
       <div class="value" id="statStreak">0 días seguidos</div>
       <div class="sub">Contando hacia atrás desde hoy</div>
     </div>
+  </div>
+
+  <div class="view" id="view-study">
+    <h2>Sala de foco</h2>
+    <div class="focusBox">
+      <div id="focusMsg" class="focusMsg"></div>
+      <div id="focusDisplay">25:00</div>
+      <div class="focusControls">
+        <div>
+          <label>Materia</label>
+          <select id="focusSubject"></select>
+        </div>
+        <div>
+          <label>Minutos</label>
+          <input id="focusMinutes" type="number" min="1" max="180" value="25">
+        </div>
+      </div>
+      <div class="focusButtons">
+        <button id="focusToggleBtn" type="button">Iniciar</button>
+        <button id="focusResetBtn" type="button">Reiniciar</button>
+      </div>
+    </div>
+
+    <h2>Tu tiempo de estudio</h2>
+    <div class="statCard">
+      <div class="label">Estudiado hoy</div>
+      <div class="value" id="statStudyToday">0 min</div>
+      <div class="sub" id="statStudyWeek">Esta semana: 0 min</div>
+    </div>
+    <div id="studyWeekList"></div>
+
+    <h2 style="margin-top:22px;">Materias</h2>
+    <form id="newSubjectForm">
+      <label>Nombre de la materia</label>
+      <input id="subjectName" type="text" placeholder="Ej: Matemática, Historia, Inglés" required>
+      <label>Color</label>
+      <input id="subjectColor" type="color" value="#5b7fa6" style="width:60px;height:34px;padding:2px;cursor:pointer;">
+      <button type="submit">Agregar materia</button>
+    </form>
+    <div id="subjectsList"></div>
+
+    <h2 style="margin-top:22px;">Últimas sesiones</h2>
+    <div id="studySessionsList"></div>
   </div>
 
   <div class="view" id="view-movies">
@@ -651,7 +719,11 @@ const repeatLabels = { none: "", weekly: "Semanal", monthly: "Mensual", yearly: 
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
 function saveGoals(){ localStorage.setItem(GOALS_KEY, JSON.stringify(goals)); }
 
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+// Fecha local en formato AAAA-MM-DD (no usa UTC, así no se adelanta el día a la noche)
+function localISO(d){
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function todayStr(){ return localISO(new Date()); }
 function fmtDate(d){
   const dt = new Date(d + "T00:00:00");
   return dt.toLocaleDateString("es-AR", {day:"2-digit", month:"short", year:"numeric"});
@@ -666,7 +738,7 @@ function addInterval(dateStr, repeat){
   if(repeat === "weekly") d.setDate(d.getDate() + 7);
   else if(repeat === "monthly") d.setMonth(d.getMonth() + 1);
   else if(repeat === "yearly") d.setFullYear(d.getFullYear() + 1);
-  return d.toISOString().slice(0,10);
+  return localISO(d);
 }
 
 function clearFiredForItem(id){
@@ -1108,7 +1180,7 @@ function renderSummary(){
 
   // Alerta de pruebas gratis por vencer (próximos 3 días)
   const in3days = new Date(); in3days.setDate(in3days.getDate()+3);
-  const trialsSoon = items.filter(i => i.type === "trial" && i.date >= tStr && i.date <= in3days.toISOString().slice(0,10));
+  const trialsSoon = items.filter(i => i.type === "trial" && i.date >= tStr && i.date <= localISO(in3days));
   const warnEl = document.getElementById("summaryTrialWarn");
   if(trialsSoon.length > 0){
     warnEl.innerHTML = `<div class="warnBox"><strong>Atención:</strong> tenés ${trialsSoon.length} período(s) de prueba por vencer en los próximos 3 días — ` +
@@ -1145,7 +1217,7 @@ function renderStats(){
   let streak = 0;
   let cursor = new Date();
   while(true){
-    const key = cursor.toISOString().slice(0,10);
+    const key = localISO(cursor);
     if(dayNotes[key]){
       streak++;
       cursor.setDate(cursor.getDate()-1);
@@ -1379,6 +1451,252 @@ movieModalOverlay.addEventListener("click", (e)=>{
 
 renderRanking();
 
+// --- Estudio: materias, sala de foco y registro de sesiones ---
+const SUBJECTS_KEY = "agenda_subjects_v1";
+const SESSIONS_KEY = "agenda_sessions_v1";
+let subjects = [];
+try { subjects = JSON.parse(localStorage.getItem(SUBJECTS_KEY)) || []; } catch(e) { subjects = []; }
+let sessions = [];
+try { sessions = JSON.parse(localStorage.getItem(SESSIONS_KEY)) || []; } catch(e) { sessions = []; }
+
+function saveSubjects(){ localStorage.setItem(SUBJECTS_KEY, JSON.stringify(subjects)); }
+function saveSessions(){ localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions)); }
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function fmtClock(ms){
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+}
+function fmtMinutes(m){
+  if(m < 60) return m + " min";
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r === 0 ? h + " h" : h + " h " + r + " min";
+}
+function weekStartStr(){
+  const d = new Date();
+  const day = d.getDay(); // 0 = domingo
+  const diff = day === 0 ? 6 : day - 1; // la semana empieza el lunes
+  d.setDate(d.getDate() - diff);
+  return localISO(d);
+}
+
+// --- Temporizador ---
+let focusTimer = null;
+let focusEndTime = 0;
+let focusRemainingMs = 0;
+let focusTotalMs = 0;
+let focusSubjectId = null;
+let focusRunning = false;
+
+function playBeep(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.value = 0.15;
+    osc.start();
+    osc.stop(ctx.currentTime + 0.6);
+  }catch(e){}
+}
+
+function setFocusLocked(locked){
+  document.getElementById("focusSubject").disabled = locked;
+  document.getElementById("focusMinutes").disabled = locked;
+}
+
+function renderIdleDisplay(){
+  const mins = parseInt(document.getElementById("focusMinutes").value) || 25;
+  document.getElementById("focusDisplay").textContent = fmtClock(mins * 60000);
+}
+
+function tickFocus(){
+  const remaining = focusEndTime - Date.now();
+  if(remaining <= 0){ finishFocus(); return; }
+  document.getElementById("focusDisplay").textContent = fmtClock(remaining);
+  document.title = fmtClock(remaining) + " · Agenda";
+}
+
+function toggleFocus(){
+  const msgEl = document.getElementById("focusMsg");
+  const btn = document.getElementById("focusToggleBtn");
+
+  if(focusRunning){
+    // Pausar
+    clearInterval(focusTimer);
+    focusRemainingMs = Math.max(focusEndTime - Date.now(), 0);
+    focusRunning = false;
+    btn.textContent = "Continuar";
+    msgEl.textContent = "En pausa.";
+    return;
+  }
+
+  if(focusRemainingMs <= 0){
+    // Empezar una sesión nueva
+    const subjectId = document.getElementById("focusSubject").value;
+    const mins = parseInt(document.getElementById("focusMinutes").value);
+    if(!subjectId){ msgEl.textContent = "Primero creá una materia más abajo."; return; }
+    if(!mins || mins < 1){ msgEl.textContent = "Poné una duración de al menos 1 minuto."; return; }
+    focusSubjectId = subjectId;
+    focusTotalMs = mins * 60000;
+    focusRemainingMs = focusTotalMs;
+    setFocusLocked(true);
+  }
+
+  focusEndTime = Date.now() + focusRemainingMs;
+  focusRunning = true;
+  focusTimer = setInterval(tickFocus, 250);
+  btn.textContent = "Pausar";
+  msgEl.textContent = "Sesión en curso.";
+  tickFocus();
+}
+
+function resetFocus(){
+  clearInterval(focusTimer);
+  focusRunning = false;
+  focusRemainingMs = 0;
+  focusSubjectId = null;
+  setFocusLocked(false);
+  document.getElementById("focusToggleBtn").textContent = "Iniciar";
+  document.getElementById("focusMsg").textContent = "";
+  document.title = "Agenda";
+  renderIdleDisplay();
+}
+
+function finishFocus(){
+  clearInterval(focusTimer);
+  const minutes = Math.round(focusTotalMs / 60000);
+  sessions.push({ id: Date.now().toString(), subjectId: focusSubjectId, minutes, date: todayStr(), at: Date.now() });
+  saveSessions();
+  playBeep();
+  resetFocus();
+  document.getElementById("focusMsg").textContent = "¡Sesión completada! Sumaste " + minutes + " min.";
+  renderStudyStats();
+  renderSessionsList();
+}
+
+// --- Materias ---
+function renderSubjects(){
+  const list = document.getElementById("subjectsList");
+  const select = document.getElementById("focusSubject");
+  const previous = select.value;
+
+  if(subjects.length === 0){
+    list.innerHTML = `<div class="empty-msg">Todavía no creaste ninguna materia.</div>`;
+    select.innerHTML = `<option value="">(Creá una materia primero)</option>`;
+  } else {
+    list.innerHTML = subjects.map(s => `
+      <div class="item" style="border-left-color:${s.color};">
+        <div class="info"><div class="title">${escapeHtml(s.name)}</div></div>
+        <button class="del" data-id="${s.id}" type="button">✕</button>
+      </div>
+    `).join("");
+    select.innerHTML = subjects.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+    if(subjects.some(s => s.id === previous)) select.value = previous;
+  }
+
+  list.querySelectorAll(".del").forEach(btn=>{
+    btn.addEventListener("click", ()=> removeSubject(btn.dataset.id));
+  });
+}
+
+function removeSubject(id){
+  const s = subjects.find(x => x.id === id);
+  if(!s) return;
+  if(!confirm('¿Borrar "' + s.name + '" y todas sus sesiones de estudio?')) return;
+  if(focusSubjectId === id) resetFocus();
+  subjects = subjects.filter(x => x.id !== id);
+  sessions = sessions.filter(x => x.subjectId !== id);
+  saveSubjects();
+  saveSessions();
+  renderStudy();
+}
+
+// --- Estadísticas de estudio ---
+function renderStudyStats(){
+  const today = todayStr();
+  const todayMin = sessions.filter(s => s.date === today).reduce((t,s)=> t + s.minutes, 0);
+  document.getElementById("statStudyToday").textContent = fmtMinutes(todayMin);
+
+  const weekStart = weekStartStr();
+  const weekSessions = sessions.filter(s => s.date >= weekStart);
+  const weekTotal = weekSessions.reduce((t,s)=> t + s.minutes, 0);
+  document.getElementById("statStudyWeek").textContent = "Esta semana: " + fmtMinutes(weekTotal);
+
+  const perSubject = subjects
+    .map(s => ({ subject: s, minutes: weekSessions.filter(x => x.subjectId === s.id).reduce((t,x)=> t + x.minutes, 0) }))
+    .filter(x => x.minutes > 0)
+    .sort((a,b)=> b.minutes - a.minutes);
+
+  const container = document.getElementById("studyWeekList");
+  if(perSubject.length === 0){
+    container.innerHTML = `<div class="empty-msg">Todavía no hay sesiones esta semana.</div>`;
+    return;
+  }
+  const max = perSubject[0].minutes;
+  container.innerHTML = perSubject.map(x => `
+    <div class="progressCard">
+      <div class="top">
+        <div class="title">${escapeHtml(x.subject.name)}</div>
+        <div class="nums" style="margin-top:0;">${fmtMinutes(x.minutes)}</div>
+      </div>
+      <div class="barBg"><div class="barFill" style="width:${(x.minutes / max) * 100}%;background:${x.subject.color};"></div></div>
+    </div>
+  `).join("");
+}
+
+function renderSessionsList(){
+  const container = document.getElementById("studySessionsList");
+  const recent = [...sessions].sort((a,b)=> b.at - a.at).slice(0, 8);
+  if(recent.length === 0){
+    container.innerHTML = `<div class="empty-msg">Todavía no completaste ninguna sesión.</div>`;
+    return;
+  }
+  container.innerHTML = recent.map(s => {
+    const subj = subjects.find(x => x.id === s.subjectId);
+    return `
+      <div class="item" style="border-left-color:${subj ? subj.color : "#555"};">
+        <div class="info">
+          <div class="title">${subj ? escapeHtml(subj.name) : "Materia borrada"}</div>
+          <div class="meta">${fmtDate(s.date)} · ${fmtMinutes(s.minutes)}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderStudy(){
+  renderSubjects();
+  renderStudyStats();
+  renderSessionsList();
+  if(!focusRunning && focusRemainingMs <= 0) renderIdleDisplay();
+}
+
+document.getElementById("newSubjectForm").addEventListener("submit", (e)=>{
+  e.preventDefault();
+  const name = document.getElementById("subjectName").value.trim();
+  const color = document.getElementById("subjectColor").value;
+  if(!name) return;
+  subjects.push({ id: Date.now().toString(), name, color });
+  saveSubjects();
+  document.getElementById("newSubjectForm").reset();
+  renderStudy();
+});
+document.getElementById("focusToggleBtn").addEventListener("click", toggleFocus);
+document.getElementById("focusResetBtn").addEventListener("click", resetFocus);
+document.getElementById("focusMinutes").addEventListener("input", ()=>{
+  if(!focusRunning && focusRemainingMs <= 0) renderIdleDisplay();
+});
+
+renderStudy();
+
 // --- Clima (detecta ubicación automáticamente; si no se puede, usa Berazategui) ---
 let WEATHER_LAT = -34.7636;
 let WEATHER_LON = -58.2119;
@@ -1526,7 +1844,7 @@ if("serviceWorker" in navigator){
 }
 
 // --- Novedades de la web ---
-// Cada vez que hagamos un cambio importante, se agrega una entrada acá arriba de todo.
+// Cada vez que hagamos un cambio importante, se agrega una entrada NUEVA AL FINAL de esta lista.
 const CHANGELOG = [
   { id: "2026-09-30-alertas-y-novedades", items: [
       "Los avisos de vencimiento ahora muestran el tiempo exacto que falta, o hace cuánto venció algo si ya pasó la fecha.",
@@ -1536,6 +1854,12 @@ const CHANGELOG = [
       "Se agregó personalización de colores en la web.",
       "Se agregaron notificaciones integradas en la web.",
       "Se solucionaron errores"
+  ]},
+  { id: "2026-10-01-modulo-estudio", items: [
+      "Nueva pestaña Estudio: materias y sala de foco con temporizador.",
+      "Se registra el tiempo estudiado por materia (hoy y esta semana).",
+      "La web se adapta mejor a pantallas chicas.",
+      "Se corrigió un error de fecha que mostraba el día siguiente después de las 21:00."
   ]}
 ];
 const CHANGELOG_SEEN_KEY = "agenda_changelog_seen_v1";
