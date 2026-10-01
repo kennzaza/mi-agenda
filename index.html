@@ -538,11 +538,6 @@
     <div id="studySessionsList"></div>
   </div>
   
-  
-  <div class="warnBox" style="margin-top:22px;">
-    <strong>En desarrollo:</strong> esta sección todavía se está construyendo. Pueden cambiar cosas o aparecer errores.
-  </div>
-
   <div class="view" id="view-movies">
     <h2>Series y películas</h2>
 
@@ -674,10 +669,12 @@
   </div>
 </div>
 
-  <div id="studyPinOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);align-items:center;justify-content:center;z-index:230;">
+<div id="studyPinOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);align-items:center;justify-content:center;z-index:230;">
   <div class="modalBox">
-    <h3>Sección protegida</h3>
-    <div class="sub">Ingresá la clave para entrar a Estudio.</div>
+    <h3>Sección en desarrollo</h3>
+    <div class="warnBox" style="margin:8px 0 12px 0;">
+      <strong>En desarrollo:</strong> esta sección todavía se está construyendo y por ahora está restringida. Ingresá la clave si la tenés.
+    </div>
     <input id="studyPinInput" type="password" inputmode="numeric" maxlength="4" placeholder="Clave" style="width:100%;">
     <div id="studyPinError" style="font-size:12px;color:#c77;min-height:16px;margin-top:6px;"></div>
     <div class="modalActions">
