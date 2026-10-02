@@ -556,6 +556,10 @@
       <div class="stat" id="cardsStat">0 tarjetas</div>
       <button id="startReviewBtn" type="button">Repasar</button>
     </div>
+    <div class="cardsBar" style="margin-top:-6px;">
+      <label for="newPerDay" style="font-size:12px;">Tarjetas nuevas por día</label>
+      <input id="newPerDay" type="number" min="1" max="100" style="width:80px;">
+    </div>
     <form id="aiForm">
       <h2 style="margin:0;">Generar con IA</h2>
       <label>Materia</label>
@@ -584,6 +588,11 @@
       <textarea id="cardBack" placeholder="Ej: Organela que produce la energía de la célula" required></textarea>
       <button type="submit">Agregar tarjeta</button>
     </form>
+    <h2 style="margin-top:18px;">Tus tarjetas</h2>
+    <div id="cardsFilters" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <input id="cardSearch" type="text" placeholder="Buscar tarjetas..." style="flex:1;min-width:140px;">
+      <select id="cardFilterSubject" style="width:170px;"><option value="all">Todas las materias</option></select>
+    </div>
     <div id="cardsList"></div>
 
     <h2 style="margin-top:22px;">Materias</h2>
@@ -752,6 +761,22 @@
     <div class="modalActions">
       <button id="reviewExitBtn" type="button" style="margin-right:auto;background:transparent;">Salir</button>
       <button id="reviewShowBtn" type="button">Mostrar respuesta</button>
+    </div>
+  </div>
+</div>
+
+<div id="cardEditOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);align-items:center;justify-content:center;z-index:235;">
+  <div class="modalBox">
+    <h3>Editar tarjeta</h3>
+    <label>Materia</label>
+    <select id="editCardSubject" style="width:100%;margin-bottom:8px;"></select>
+    <label>Pregunta (frente)</label>
+    <textarea id="editCardFront" style="min-height:70px;margin-bottom:8px;"></textarea>
+    <label>Respuesta (dorso)</label>
+    <textarea id="editCardBack" style="min-height:70px;"></textarea>
+    <div class="modalActions">
+      <button id="editCardCancel" type="button">Cancelar</button>
+      <button id="editCardSave" type="button">Guardar</button>
     </div>
   </div>
 </div>
@@ -1685,6 +1710,7 @@ function toggleFocus(){
     focusRunning = false;
     btn.textContent = "Continuar";
     msgEl.textContent = "En pausa.";
+    saveFocusState();
     return;
   }
 
@@ -1705,6 +1731,7 @@ function toggleFocus(){
   focusTimer = setInterval(tickFocus, 250);
   btn.textContent = "Pausar";
   msgEl.textContent = "Sesión en curso.";
+  saveFocusState();
   tickFocus();
 }
 
@@ -1717,6 +1744,7 @@ function resetFocus(){
   document.getElementById("focusToggleBtn").textContent = "Iniciar";
   document.getElementById("focusMsg").textContent = "";
   document.title = "Agenda";
+  localStorage.removeItem(FOCUS_KEY);
   renderIdleDisplay();
 }
 
@@ -1895,6 +1923,38 @@ function scheduleCard(card, q){
   return { ease, interval, reps };
 }
 
+// --- Ajustes de tarjetas ---
+const SETTINGS_KEY = "agenda_settings_v1";
+let settings = {};
+try { settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch(e) { settings = {}; }
+function saveSettings(){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+function getNewPerDay(){
+  const n = parseInt(settings.newPerDay);
+  return n >= 1 ? Math.min(n, 100) : 15;
+}
+
+// Tarjetas que toca repasar hoy: las ya vistas que vencieron, más las nuevas hasta el límite diario.
+function getDueCards(){
+  const t = todayStr();
+  const introducedToday = cards.filter(c => c.firstSeen === t).length;
+  let remainingNew = Math.max(0, getNewPerDay() - introducedToday);
+  const result = [];
+  cards
+    .filter(c => c.due <= t)
+    .sort((a,b)=> a.due.localeCompare(b.due) || a.createdAt - b.createdAt)
+    .forEach(c => {
+      const isNew = !c.firstSeen && c.reps === 0 && c.interval === 0;
+      if(isNew){
+        if(remainingNew > 0){ result.push(c); remainingNew--; }
+      } else {
+        result.push(c);
+      }
+    });
+  return result;
+}
+
+let cardsShown = 10;
+
 function renderCards(){
   const select = document.getElementById("cardSubject");
   const prev = select.value;
@@ -1905,8 +1965,17 @@ function renderCards(){
     if(subjects.some(s => s.id === prev)) select.value = prev;
   }
 
+  const filterSel = document.getElementById("cardFilterSubject");
+  const prevFilter = filterSel.value || "all";
+  filterSel.innerHTML = `<option value="all">Todas las materias</option>` +
+    subjects.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+  filterSel.value = subjects.some(s => s.id === prevFilter) ? prevFilter : "all";
+
+  const newInput = document.getElementById("newPerDay");
+  if(document.activeElement !== newInput) newInput.value = getNewPerDay();
+
   const t = todayStr();
-  const due = cards.filter(c => c.due <= t).length;
+  const due = getDueCards().length;
   document.getElementById("cardsStat").textContent = cards.length + " tarjeta(s) · " + due + " para repasar hoy";
   const startBtn = document.getElementById("startReviewBtn");
   startBtn.disabled = due === 0;
@@ -1917,27 +1986,51 @@ function renderCards(){
     list.innerHTML = `<div class="empty-msg">Todavía no creaste ninguna tarjeta.</div>`;
     return;
   }
-  const recent = [...cards].sort((a,b)=> b.createdAt - a.createdAt).slice(0, 10);
-  list.innerHTML = recent.map(c => {
+
+  const q = (document.getElementById("cardSearch").value || "").toLowerCase().trim();
+  const subjFilter = filterSel.value;
+  const filtered = cards
+    .filter(c => (subjFilter === "all" || c.subjectId === subjFilter) &&
+                 (!q || c.front.toLowerCase().includes(q) || c.back.toLowerCase().includes(q)))
+    .sort((a,b)=> b.createdAt - a.createdAt);
+
+  if(filtered.length === 0){
+    list.innerHTML = `<div class="empty-msg">No hay tarjetas que coincidan.</div>`;
+    return;
+  }
+
+  const visible = filtered.slice(0, cardsShown);
+  list.innerHTML = visible.map(c => {
     const subj = subjects.find(s => s.id === c.subjectId);
+    const isNew = !c.firstSeen && c.reps === 0 && c.interval === 0;
+    const when = isNew ? "nueva" : (c.due <= t ? "repaso: hoy" : "repaso: " + fmtDate(c.due));
     return `
       <div class="item" style="border-left-color:${subj ? subj.color : "#555"};">
         <div class="info">
           <div class="title">${escapeHtml(c.front)}</div>
-          <div class="meta">${subj ? escapeHtml(subj.name) : "Sin materia"} · Próximo repaso: ${c.due <= t ? "hoy" : fmtDate(c.due)}</div>
+          <div class="meta">${subj ? escapeHtml(subj.name) : "Sin materia"} · ${when}</div>
         </div>
-        <button class="del" data-id="${c.id}" type="button">✕</button>
+        <button class="del" data-edit="${c.id}" type="button" title="Editar">✎</button>
+        <button class="del" data-id="${c.id}" type="button" title="Borrar">✕</button>
       </div>
     `;
-  }).join("") + (cards.length > 10 ? `<div class="empty-msg">Mostrando las últimas 10 de ${cards.length}.</div>` : "");
+  }).join("") + (filtered.length > cardsShown
+      ? `<button id="cardsMoreBtn" type="button" style="width:100%;">Mostrar más (${filtered.length - cardsShown} restantes)</button>`
+      : `<div class="empty-msg">${filtered.length} tarjeta(s)</div>`);
 
-  list.querySelectorAll(".del").forEach(btn=>{
+  list.querySelectorAll("button[data-edit]").forEach(btn=>{
+    btn.addEventListener("click", ()=> openCardEdit(btn.dataset.edit));
+  });
+  list.querySelectorAll("button[data-id]").forEach(btn=>{
     btn.addEventListener("click", ()=>{
+      if(!confirm("¿Borrar esta tarjeta?")) return;
       cards = cards.filter(c => c.id !== btn.dataset.id);
       saveCards();
       renderCards();
     });
   });
+  const more = document.getElementById("cardsMoreBtn");
+  if(more) more.addEventListener("click", ()=>{ cardsShown += 10; renderCards(); });
 }
 
 document.getElementById("newCardForm").addEventListener("submit", (e)=>{
@@ -1966,7 +2059,7 @@ let reviewCurrent = null;
 
 function openReview(){
   const t = todayStr();
-  reviewQueue = cards.filter(c => c.due <= t).sort((a,b)=> a.due.localeCompare(b.due)).map(c => c.id);
+  reviewQueue = getDueCards().map(c => c.id);
   if(reviewQueue.length === 0) return;
   reviewAnswered = 0;
   document.getElementById("reviewOverlay").style.display = "flex";
@@ -2031,6 +2124,8 @@ function rateCard(q){
   card.ease = next.ease;
   card.interval = next.interval;
   card.reps = next.reps;
+  if(!card.firstSeen) card.firstSeen = todayStr();
+  card.lastReview = todayStr();
   reviewQueue.shift();
   if(q === "again"){
     card.due = todayStr();
@@ -2210,7 +2305,7 @@ document.getElementById("aiForm").addEventListener("submit", async (e)=>{
 // --- Copia de seguridad ---
 document.getElementById("exportBtn").addEventListener("click", ()=>{
   const data = {};
-  Object.keys(localStorage).filter(k => k.startsWith("agenda_")).forEach(k=>{
+  Object.keys(localStorage).filter(k => k.startsWith("agenda_") && k !== "agenda_focus_v1").forEach(k=>{
     data[k] = localStorage.getItem(k);
   });
   const blob = new Blob([JSON.stringify({ app: "agenda", exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" });
@@ -2246,6 +2341,108 @@ document.getElementById("importFile").addEventListener("change", (e)=>{
   e.target.value = "";
 });
 
+// --- Editar tarjetas ---
+let editingCardId = null;
+
+function openCardEdit(id){
+  const c = cards.find(x => x.id === id);
+  if(!c) return;
+  editingCardId = id;
+  const sel = document.getElementById("editCardSubject");
+  sel.innerHTML = subjects.map(sj => `<option value="${sj.id}">${escapeHtml(sj.name)}</option>`).join("");
+  if(subjects.some(sj => sj.id === c.subjectId)) sel.value = c.subjectId;
+  document.getElementById("editCardFront").value = c.front;
+  document.getElementById("editCardBack").value = c.back;
+  document.getElementById("cardEditOverlay").style.display = "flex";
+  document.getElementById("editCardFront").focus();
+}
+
+function closeCardEdit(){
+  document.getElementById("cardEditOverlay").style.display = "none";
+  editingCardId = null;
+}
+
+document.getElementById("editCardCancel").addEventListener("click", closeCardEdit);
+document.getElementById("editCardSave").addEventListener("click", ()=>{
+  const c = cards.find(x => x.id === editingCardId);
+  if(!c){ closeCardEdit(); return; }
+  const front = document.getElementById("editCardFront").value.trim();
+  const back = document.getElementById("editCardBack").value.trim();
+  const subjectId = document.getElementById("editCardSubject").value;
+  if(!front || !back){ alert("La pregunta y la respuesta no pueden quedar vacías."); return; }
+  c.front = front;
+  c.back = back;
+  if(subjectId) c.subjectId = subjectId;
+  saveCards();
+  closeCardEdit();
+  renderCards();
+});
+document.getElementById("cardEditOverlay").addEventListener("click", (e)=>{
+  if(e.target.id === "cardEditOverlay") closeCardEdit();
+});
+
+// --- Filtros y ajustes de tarjetas ---
+document.getElementById("cardSearch").addEventListener("input", ()=>{ cardsShown = 10; renderCards(); });
+document.getElementById("cardFilterSubject").addEventListener("change", ()=>{ cardsShown = 10; renderCards(); });
+document.getElementById("newPerDay").addEventListener("change", ()=>{
+  const n = parseInt(document.getElementById("newPerDay").value);
+  settings.newPerDay = n >= 1 ? Math.min(n, 100) : 15;
+  saveSettings();
+  renderCards();
+});
+
+// --- El temporizador sobrevive si cerrás o recargás la página ---
+const FOCUS_KEY = "agenda_focus_v1";
+
+function saveFocusState(){
+  if(!focusRunning && focusRemainingMs <= 0){ localStorage.removeItem(FOCUS_KEY); return; }
+  localStorage.setItem(FOCUS_KEY, JSON.stringify({
+    subjectId: focusSubjectId,
+    totalMs: focusTotalMs,
+    running: focusRunning,
+    endTime: focusEndTime,
+    remainingMs: focusRemainingMs
+  }));
+}
+
+function restoreFocus(){
+  let st = null;
+  try { st = JSON.parse(localStorage.getItem(FOCUS_KEY)); } catch(e){ st = null; }
+  if(!st || !subjects.some(sj => sj.id === st.subjectId)){
+    localStorage.removeItem(FOCUS_KEY);
+    return;
+  }
+  focusSubjectId = st.subjectId;
+  focusTotalMs = st.totalMs;
+  document.getElementById("focusSubject").value = st.subjectId;
+  document.getElementById("focusMinutes").value = Math.max(1, Math.round(st.totalMs / 60000));
+  setFocusLocked(true);
+
+  const btn = document.getElementById("focusToggleBtn");
+  const msgEl = document.getElementById("focusMsg");
+
+  if(st.running){
+    const remaining = st.endTime - Date.now();
+    if(remaining <= 0){
+      finishFocus(); // la sesión terminó mientras no estabas: se registra igual
+      msgEl.textContent = "Tu sesión terminó mientras no estabas. Se sumaron " + Math.round(st.totalMs / 60000) + " min.";
+      return;
+    }
+    focusRemainingMs = remaining;
+    focusEndTime = st.endTime;
+    focusRunning = true;
+    focusTimer = setInterval(tickFocus, 250);
+    btn.textContent = "Pausar";
+    msgEl.textContent = "Sesión en curso (recuperada).";
+    tickFocus();
+  } else {
+    focusRemainingMs = st.remainingMs;
+    document.getElementById("focusDisplay").textContent = fmtClock(focusRemainingMs);
+    btn.textContent = "Continuar";
+    msgEl.textContent = "En pausa (recuperada).";
+  }
+}
+
 // Cada vez que se redibuja Estudio (materias nuevas o borradas), también se redibujan las tarjetas
 const renderStudyBase = renderStudy;
 renderStudy = function(){
@@ -2256,6 +2453,8 @@ renderStudy = function(){
 
 renderCards();
 renderAiForm();
+
+restoreFocus();
 
 // --- Clima (detecta ubicación automáticamente; si no se puede, usa Berazategui) ---
 let WEATHER_LAT = -34.7636;
