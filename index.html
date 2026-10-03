@@ -2,391 +2,382 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Agenda</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#141414">
+<meta name="theme-color" content="#0e1116">
 <link rel="icon" href="icon-192.png">
 <style>
   :root{
-    --bg:#141414;
-    --panel:#1c1c1c;
-    --panel2:#232323;
-    --border:#2e2e2e;
-    --text:#e4e4e4;
-    --muted:#8a8a8a;
-    --accent:#5a5a5a;
+    --bg:#0e1116;
+    --panel:#141820;
+    --panel2:#1a1f2a;
+    --border:#262c3a;
+    --text:#e9ecf3;
+    --muted:#8a92a6;
+    --accent:#6c8cff;
 
-    --c-reminder:#5b7fa6;
-    --c-subscription:#a68a4d;
-    --c-debt:#a65b5b;
-    --c-trial:#4d9e7a;
-    --c-memory:#7a6ba6;
-    --c-goal:#4d9ea0;
-    --c-warn:#a67a4d;
+    --c-reminder:#6c8cff;
+    --c-subscription:#f2b950;
+    --c-debt:#ef6b6b;
+    --c-trial:#3fc79a;
+    --c-memory:#a78bfa;
+    --c-goal:#38bdf8;
+    --c-warn:#f2b950;
+    --radius:14px;
   }
   *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
   body{
     margin:0;
     background:var(--bg);
     color:var(--text);
-    font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    font-size:14px;
+    line-height:1.45;
     display:flex;
     min-height:100vh;
+    -webkit-font-smoothing:antialiased;
   }
+  h1{font-size:18px;font-weight:700;margin:0;letter-spacing:.2px;color:var(--text);}
+  h2{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:0 0 10px 0;font-weight:600;}
+  label{font-size:12px;color:var(--muted);}
+
+  /* ---------- Navegación ---------- */
   #sidebar{
-    width:320px;
+    width:236px;
     background:var(--panel);
     border-right:1px solid var(--border);
-    padding:20px;
+    padding:22px 16px;
     display:flex;
     flex-direction:column;
-    gap:16px;
+    gap:18px;
     flex-shrink:0;
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow-y:auto;
   }
-  h1{font-size:16px;font-weight:600;margin:0 0 4px 0;letter-spacing:.5px;color:#ccc;}
-  h2{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0 8px 0;}
-  #main{flex:1;padding:24px;overflow-y:auto;}
+  .brand{display:flex;align-items:center;gap:10px;padding:0 6px;}
+  .brandMark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#a78bfa);display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px;}
+  .brand small{display:block;color:var(--muted);font-size:11px;font-weight:400;}
+  #newBtn{
+    background:var(--accent);color:#fff;border:none;border-radius:12px;
+    padding:12px;font-size:14px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 6px 18px -8px var(--accent);
+  }
+  #newBtn:hover{filter:brightness(1.1);background:var(--accent);}
+  #mainTabs{display:flex;flex-direction:column;gap:2px;}
+  .mtab{
+    background:transparent;border:none;color:var(--muted);
+    padding:10px 12px;border-radius:10px;font-size:14px;
+    display:flex;align-items:center;gap:12px;text-align:left;cursor:pointer;
+  }
+  .mtab svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+  .mtab:hover{background:rgba(255,255,255,.04);color:var(--text);}
+  .mtab.active{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--text);}
+  .mtab.active svg{color:var(--accent);}
 
-  form{display:flex;flex-direction:column;gap:8px;background:var(--panel2);padding:14px;border-radius:8px;border:1px solid var(--border);}
-  label{font-size:11px;color:var(--muted);}
-  input,select{
-    background:#181818;
+  #main{flex:1;min-width:0;padding:30px 34px 40px;}
+  .page{max-width:980px;margin:0 auto;}
+  .view{display:none;animation:fade .25s ease;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+  /* ---------- Controles ---------- */
+  input,select,textarea{
+    background:var(--bg);
     border:1px solid var(--border);
     color:var(--text);
-    padding:8px;
-    border-radius:6px;
-    font-size:13px;
+    padding:10px 12px;
+    border-radius:10px;
+    font-size:14px;
+    font-family:inherit;
   }
-  input:focus,select:focus{outline:1px solid var(--accent);}
+  input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:0;border-color:var(--accent);}
   button{
-    background:#2a2a2a;
+    background:var(--panel2);
     color:var(--text);
     border:1px solid var(--border);
-    padding:9px;
-    border-radius:6px;
+    padding:10px 14px;
+    border-radius:10px;
     cursor:pointer;
     font-size:13px;
+    font-family:inherit;
+    transition:background .15s,border-color .15s,transform .05s;
   }
-  button:hover{background:#333;}
+  button:hover{background:#232a38;border-color:#343c4f;}
+  button:active{transform:scale(.98);}
   button:disabled{opacity:.5;cursor:default;}
+  form{display:flex;flex-direction:column;gap:8px;}
+  #goalsList form,#newGoalForm{background:var(--panel2);padding:16px;border-radius:var(--radius);border:1px solid var(--border);}
 
-  #mainTabs{display:flex;gap:6px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0;flex-wrap:wrap;}
-  .mtab{
-    background:transparent;border:none;border-bottom:2px solid transparent;
-    color:var(--muted);padding:9px 4px;margin-bottom:-1px;
-    border-radius:0;font-size:13px;display:flex;align-items:center;gap:6px;
+  /* ---------- Inicio ---------- */
+  .hero{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-bottom:14px;}
+  .card{background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+  .heroGreeting{font-size:26px;font-weight:700;letter-spacing:-.3px;}
+  .heroDate{color:var(--muted);margin-top:2px;}
+  #clock{font-size:34px;font-weight:300;letter-spacing:1px;margin-top:14px;font-variant-numeric:tabular-nums;color:var(--text);}
+  #weatherBox h2{margin-bottom:8px;}
+  #weatherContent{font-size:13px;color:var(--muted);}
+  #rainAlert{margin-top:10px;background:color-mix(in srgb,var(--c-warn) 14%,transparent);border:1px solid color-mix(in srgb,var(--c-warn) 35%,transparent);border-radius:10px;padding:9px 12px;font-size:12px;color:#f3d9a4;}
+
+  .summaryGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+  .summaryCard{background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+  .summaryCard .label{font-size:12px;color:var(--muted);}
+  .summaryCard .value{font-size:26px;font-weight:700;margin-top:4px;letter-spacing:-.3px;}
+
+  .warnBox{
+    background:color-mix(in srgb,var(--c-warn) 12%,transparent);
+    border:1px solid color-mix(in srgb,var(--c-warn) 32%,transparent);
+    border-radius:12px;padding:12px 14px;margin-bottom:14px;color:#f3d9a4;font-size:13px;
   }
-  .mtab:hover{background:transparent;color:#ccc;}
-  .mtab.active{color:#eee;}
-  .mtab[data-view="view-today"].active{border-bottom-color:#888;}
-  .mtab[data-view="view-calendar"].active{border-bottom-color:var(--c-reminder);}
-  .mtab[data-view="view-list"].active{border-bottom-color:#888;}
-  .mtab[data-view="view-debts"].active{border-bottom-color:var(--c-debt);}
-  .mtab[data-view="view-goals"].active{border-bottom-color:var(--c-goal);}
-  .mtab[data-view="view-stats"].active{border-bottom-color:var(--c-memory);}
+  .warnBox strong{color:#ffe4b0;}
 
-  .view{display:none;}
-  .view.active{display:block;}
+  .section{margin:22px 0 10px;}
+  .weekCard{background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px;}
+  .weekStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px;}
+  .weekStat{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
+  .weekStat .label{font-size:11px;color:var(--muted);}
+  .weekStat .value{font-size:18px;font-weight:700;margin-top:3px;}
+  .dayGroup{margin-bottom:12px;}
+  .dayGroup h3{font-size:12px;color:var(--muted);font-weight:600;margin:0 0 6px 2px;text-transform:capitalize;}
+  .memoryCard{background:linear-gradient(135deg,color-mix(in srgb,var(--c-memory) 16%,var(--panel2)),var(--panel2));border:1px solid color-mix(in srgb,var(--c-memory) 30%,var(--border));border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;}
+  .memoryCard .when{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--c-memory);font-weight:600;}
+  .memoryCard .text{margin-top:6px;white-space:pre-wrap;word-break:break-word;}
+  .memoryCard .cta{margin-top:10px;}
 
+  /* ---------- Calendario ---------- */
   #calHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
-  #calHeader button{padding:6px 10px;}
-  #calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
-  .dow{text-align:center;font-size:11px;color:var(--muted);padding:4px 0;}
+  #calHeader button{padding:8px 14px;}
+  #monthLabel{font-size:18px;font-weight:600;}
+  #calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .dow{text-align:center;font-size:11px;color:var(--muted);padding:4px 0;font-weight:600;}
   .day{
     background:var(--panel2);
     border:1px solid var(--border);
-    border-radius:6px;
-    min-height:74px;
-    padding:6px;
+    border-radius:12px;
+    min-height:80px;
+    padding:8px;
     font-size:12px;
-    color:#bbb;
+    color:#c3c8d6;
     position:relative;
     cursor:pointer;
+    transition:border-color .15s,transform .1s;
   }
   .day.empty{background:transparent;border:none;cursor:default;}
-  .day.today{border-color:#777;border-width:1.5px;}
-  .day:hover:not(.empty){border-color:#666;}
-  .daynum{font-size:11px;color:var(--muted);}
-  .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin:2px 2px 0 0;}
+  .day.today{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);}
+  .day.today .daynum{color:var(--accent);font-weight:700;}
+  .day:hover:not(.empty){border-color:#3a4358;transform:translateY(-1px);}
+  .daynum{font-size:12px;color:var(--muted);}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin:3px 3px 0 0;}
   .dot.reminder{background:var(--c-reminder);}
   .dot.subscription{background:var(--c-subscription);}
   .dot.debt{background:var(--c-debt);}
   .dot.trial{background:var(--c-trial);}
   .dot.memory{background:var(--c-memory);}
   .dot.goal{background:var(--c-goal);}
-
-  #calLegend{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px;font-size:11px;color:var(--muted);}
+  #calLegend{display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;font-size:12px;color:var(--muted);}
   #calLegend div{display:flex;align-items:center;gap:6px;}
 
-  #modalOverlay, #payModalOverlay, #goalContribOverlay{
-    display:none;
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,.6);
-    align-items:center;
-    justify-content:center;
-    z-index:100;
-  }
-  #modalOverlay.open, #payModalOverlay.open, #goalContribOverlay.open{display:flex;}
-  .modalBox{
-    background:var(--panel2);
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding:20px;
-    width:380px;
-    max-width:90vw;
-  }
-  .modalBox h3{margin:0 0 4px 0;font-size:14px;color:#ddd;}
-  .modalBox .sub{font-size:11px;color:var(--muted);margin-bottom:12px;}
-  .modalBox textarea{
-    width:100%;
-    min-height:100px;
-    background:#181818;
-    border:1px solid var(--border);
-    color:var(--text);
-    border-radius:6px;
-    padding:10px;
-    font-size:13px;
-    font-family:inherit;
-    resize:vertical;
-  }
-  .modalActions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
-  .modalActions button{padding:8px 14px;}
-  #modalDelete{margin-right:auto;background:transparent;border:1px solid var(--border);color:#c77;}
-  #modalDelete:hover{background:#2a1c1c;}
-
+  /* ---------- Listas ---------- */
   #listFilters{display:flex;gap:8px;margin-bottom:14px;}
   #listFilters input{flex:1;}
-  #listFilters select{width:170px;flex-shrink:0;}
-
-  #list{display:flex;flex-direction:column;gap:8px;}
+  #listFilters select{width:180px;flex-shrink:0;}
   .item{
     background:var(--panel2);
     border:1px solid var(--border);
     border-left:3px solid var(--muted);
-    border-radius:8px;
+    border-radius:12px;
     padding:12px 14px;
     display:flex;
     justify-content:space-between;
     align-items:center;
     gap:10px;
+    margin-bottom:8px;
   }
   .item.type-reminder{border-left-color:var(--c-reminder);}
   .item.type-subscription{border-left-color:var(--c-subscription);}
   .item.type-debt{border-left-color:var(--c-debt);}
   .item.type-trial{border-left-color:var(--c-trial);}
   .item.past{opacity:.4;}
-  .item .info{display:flex;flex-direction:column;gap:2px;}
-  .item .title{font-size:14px;color:#ddd;}
-  .item .meta{font-size:11px;color:var(--muted);}
-  .tag{font-size:10px;padding:2px 8px;border-radius:20px;color:#eee;white-space:nowrap;}
+  .item .info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;}
+  .item .title{font-size:14px;color:var(--text);overflow-wrap:anywhere;}
+  .item .meta{font-size:12px;color:var(--muted);}
+  .tag{font-size:11px;padding:3px 10px;border-radius:20px;color:#0e1116;font-weight:600;white-space:nowrap;}
   .tag.reminder{background:var(--c-reminder);}
   .tag.subscription{background:var(--c-subscription);}
   .tag.debt{background:var(--c-debt);}
   .tag.trial{background:var(--c-trial);}
-  .repeatTag{font-size:9px;color:var(--muted);border:1px solid var(--border);border-radius:20px;padding:2px 7px;white-space:nowrap;}
-  .del{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;}
-  .del:hover{color:#c77;}
-  .empty-msg{color:var(--muted);font-size:13px;padding:10px 0;}
+  .repeatTag{font-size:10px;color:var(--muted);border:1px solid var(--border);border-radius:20px;padding:2px 8px;white-space:nowrap;}
+  .del{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px 8px;}
+  .del:hover{color:var(--c-debt);background:transparent;}
+  .empty-msg{color:var(--muted);font-size:13px;padding:10px 2px;}
 
-  .progressCard{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;}
+  .progressCard{background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;}
   .progressCard .top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
-  .progressCard .title{font-size:14px;color:#ddd;}
-  .progressCard .nums{font-size:11px;color:var(--muted);margin-top:4px;}
-  .progressCard .barBg{background:#181818;border-radius:6px;height:7px;margin-top:9px;overflow:hidden;}
-  .progressCard .barFill{height:100%;}
+  .progressCard .title{font-size:15px;font-weight:600;overflow-wrap:anywhere;}
+  .progressCard .nums{font-size:12px;color:var(--muted);margin-top:5px;}
+  .progressCard .barBg{background:var(--bg);border-radius:8px;height:8px;margin-top:11px;overflow:hidden;}
+  .progressCard .barFill{height:100%;border-radius:8px;transition:width .4s ease;}
   .progressCard.debt .barFill{background:var(--c-debt);}
   .progressCard.goal .barFill{background:var(--c-goal);}
-  .progressCard .actionBtn{padding:5px 10px;font-size:12px;flex-shrink:0;}
-  .payHistory{margin-top:8px;font-size:11px;color:#888;display:flex;flex-direction:column;gap:2px;}
-  .doneOff{opacity:.5;}
+  .progressCard .actionBtn{padding:6px 12px;font-size:12px;flex-shrink:0;}
+  .payHistory{margin-top:10px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:2px;}
+  .doneOff{opacity:.55;}
 
-  #debtsTotal, #goalsTotal{
-    background:var(--panel2);border:1px solid var(--border);border-radius:8px;
-    padding:14px 16px;margin-bottom:14px;
-  }
+  #debtsTotal,#goalsTotal{background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:14px;}
   #debtsTotal{border-left:3px solid var(--c-debt);}
   #goalsTotal{border-left:3px solid var(--c-goal);}
-  #debtsTotalAmount, #goalsTotalAmount{font-size:24px;color:#ddd;margin-top:2px;}
-
+  #debtsTotalAmount,#goalsTotalAmount{font-size:28px;font-weight:700;margin-top:2px;letter-spacing:-.3px;}
   #newGoalForm{margin-bottom:18px;}
 
-  /* --- Resumen del día --- */
-  .summaryGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px;}
-  .summaryCard{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;}
-  .summaryCard .label{font-size:11px;color:var(--muted);}
-  .summaryCard .value{font-size:22px;color:#ddd;margin-top:4px;}
+  .statCard{background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:12px;}
+  .statCard .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;}
+  .statCard .value{font-size:26px;font-weight:700;margin-top:6px;letter-spacing:-.3px;}
+  .statCard .sub{font-size:12px;color:var(--muted);margin-top:4px;}
 
-  .warnBox{
-    background:#2a2418;border:1px solid #4a3f2e;border-radius:8px;
-    padding:12px 14px;margin-bottom:16px;color:#d8b98a;font-size:13px;
-  }
-  .warnBox strong{color:#eecb9a;}
-
-  /* --- Series y películas --- */
-  #tmdbKeyBox{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;}
-  #tmdbKeyBox input{margin-top:6px;}
-  #tmdbKeyBox .sub{font-size:11px;color:var(--muted);margin-top:6px;}
-
+  /* ---------- Series y películas ---------- */
+  #tmdbKeyBox{background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:16px;}
   #movieSearchRow{display:flex;gap:8px;margin-bottom:14px;}
-  #movieSearchRow input{flex:1;background:#181818;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:13px;}
+  #movieSearchRow input{flex:1;}
+  #movieSearchResults{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;margin-bottom:26px;}
+  .movieResultCard{background:var(--panel2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .15s,border-color .15s;}
+  .movieResultCard:hover{transform:translateY(-3px);border-color:#3a4358;}
+  .movieResultCard img{width:100%;height:185px;object-fit:cover;display:block;background:#0b0d12;}
+  .movieResultCard .noPoster{width:100%;height:185px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;text-align:center;padding:8px;}
+  .movieResultCard .info{padding:10px;}
+  .movieResultCard .title{font-size:12px;line-height:1.3;}
+  .movieResultCard .year{font-size:11px;color:var(--muted);margin-top:2px;}
+  #rankingGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;}
+  .rankCard{background:var(--panel2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;position:relative;transition:transform .15s,border-color .15s;}
+  .rankCard:hover{transform:translateY(-3px);border-color:#3a4358;}
+  .rankCard img{width:100%;height:185px;object-fit:cover;display:block;background:#0b0d12;}
+  .rankCard .noPoster{width:100%;height:185px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;text-align:center;padding:8px;}
+  .rankCard .info{padding:10px;}
+  .rankCard .title{font-size:12px;line-height:1.3;}
+  .rankCard .stars{font-size:12px;color:#f2b950;margin-top:4px;letter-spacing:1px;}
+  .rankPos{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.72);color:#fff;font-size:11px;padding:2px 8px;border-radius:20px;}
 
-  #movieSearchResults{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-bottom:24px;}
-  .movieResultCard{background:var(--panel2);border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;}
-  .movieResultCard img{width:100%;height:170px;object-fit:cover;display:block;background:#111;}
-  .movieResultCard .noPoster{width:100%;height:170px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;text-align:center;padding:8px;}
-  .movieResultCard .info{padding:8px;}
-  .movieResultCard .title{font-size:12px;color:#ddd;line-height:1.3;}
-  .movieResultCard .year{font-size:10px;color:var(--muted);margin-top:2px;}
-
-  #rankingGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:14px;}
-  .rankCard{background:var(--panel2);border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;position:relative;}
-  .rankCard img{width:100%;height:170px;object-fit:cover;display:block;background:#111;}
-  .rankCard .noPoster{width:100%;height:170px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;text-align:center;padding:8px;}
-  .rankCard .info{padding:8px;}
-  .rankCard .title{font-size:12px;color:#ddd;line-height:1.3;}
-  .rankCard .stars{font-size:12px;color:#c9a84d;margin-top:4px;letter-spacing:1px;}
-  .rankPos{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.7);color:#ddd;font-size:11px;padding:2px 7px;border-radius:20px;}
-
-  #movieModalOverlay{
-    display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
-    align-items:center;justify-content:center;z-index:150;
+  /* ---------- Ventanas ---------- */
+  .overlay,#modalOverlay,#payModalOverlay,#goalContribOverlay,#movieModalOverlay{
+    display:none;position:fixed;inset:0;background:rgba(5,7,10,.66);
+    -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+    align-items:center;justify-content:center;
   }
-  #movieModalOverlay.open{display:flex;}
-  #movieModalBox{
-    background:var(--panel2);border:1px solid var(--border);border-radius:10px;
-    padding:20px;width:420px;max-width:92vw;max-height:88vh;overflow-y:auto;
+  #modalOverlay,#payModalOverlay,#goalContribOverlay{z-index:100;}
+  #movieModalOverlay{z-index:150;}
+  #newOverlay{z-index:120;}
+  .overlay.open,#modalOverlay.open,#payModalOverlay.open,#goalContribOverlay.open,#movieModalOverlay.open{display:flex;}
+  .modalBox{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:22px;
+    width:400px;
+    max-width:92vw;
+    max-height:92vh;
+    overflow-y:auto;
+    box-shadow:0 30px 80px -20px rgba(0,0,0,.7);
   }
+  .modalBox h3{margin:0 0 4px 0;font-size:16px;}
+  .modalBox .sub{font-size:12px;color:var(--muted);margin-bottom:12px;}
+  .modalBox textarea{width:100%;min-height:110px;resize:vertical;}
+  .modalBox input:not([type=color]),.modalBox select{width:100%;}
+  .modalHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .modalHead h3{margin:0;}
+  .modalActions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
+  .modalActions button{padding:9px 16px;}
+  #modalDelete{margin-right:auto;background:transparent;color:var(--c-debt);}
+  #movieModalBox{background:var(--panel2);border:1px solid var(--border);border-radius:18px;padding:22px;width:440px;max-width:92vw;max-height:88vh;overflow-y:auto;box-shadow:0 30px 80px -20px rgba(0,0,0,.7);}
   #movieModalBox .modalTop{display:flex;gap:14px;}
-  #movieModalBox img{width:120px;height:180px;object-fit:cover;border-radius:6px;background:#111;flex-shrink:0;}
-  #movieModalBox .noPoster{width:120px;height:180px;border-radius:6px;background:#111;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;text-align:center;padding:8px;flex-shrink:0;}
-  #movieModalBox h3{margin:0 0 4px 0;font-size:15px;color:#ddd;}
+  #movieModalBox img{width:120px;height:180px;object-fit:cover;border-radius:10px;background:#0b0d12;flex-shrink:0;}
+  #movieModalBox .noPoster{width:120px;height:180px;border-radius:10px;background:#0b0d12;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;text-align:center;padding:8px;flex-shrink:0;}
+  #movieModalBox h3{margin:0 0 4px 0;font-size:16px;}
   #starPicker{display:flex;gap:6px;margin-top:12px;}
-  .starBtn{background:transparent;border:none;font-size:26px;color:#444;padding:0;min-height:auto;cursor:pointer;}
-  .starBtn.filled{color:#c9a84d;}
+  .starBtn{background:transparent;border:none;font-size:26px;color:#3a4358;padding:0;cursor:pointer;}
+  .starBtn:hover{background:transparent;}
+  .starBtn.filled{color:#f2b950;}
 
-  /* --- Visual (personalización) --- */
-  .colorRow{
-    display:flex;align-items:center;justify-content:space-between;gap:12px;
-    background:var(--panel2);border:1px solid var(--border);border-radius:8px;
-    padding:10px 14px;margin-bottom:8px;
-  }
-  .colorRow .label{font-size:13px;color:#ddd;}
-  .colorRow .sub{font-size:11px;color:var(--muted);}
-  .colorRow input[type="color"]{
-    width:42px;height:32px;padding:2px;border-radius:6px;border:1px solid var(--border);background:#181818;cursor:pointer;
-  }
+  /* ---------- Visual ---------- */
+  .colorRow{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
+  .colorRow .label{font-size:14px;color:var(--text);}
+  .colorRow .sub{font-size:12px;color:var(--muted);}
+  .colorRow input[type="color"]{width:44px;height:34px;padding:2px;border-radius:8px;cursor:pointer;}
   #visualGroups{margin-bottom:20px;}
-  #visualGroups h2{margin-top:18px;}
-
-  /* --- Estadísticas --- */
-  .statCard{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;}
-  .statCard .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
-  .statCard .value{font-size:22px;color:#ddd;margin-top:6px;}
-  .statCard .sub{font-size:11px;color:var(--muted);margin-top:4px;}
-
-  /* --- Copia de seguridad --- */
+  #visualGroups h2{margin-top:20px;}
   .backupRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
 
-  /* --- Pantallas chicas --- */
-  @media (max-width:800px){
+  /* ---------- Botón flotante (solo celular) ---------- */
+  #fabBtn{display:none;}
+
+  /* ---------- Celular y pantallas chicas ---------- */
+  @media (max-width:860px){
     body{flex-direction:column;}
-    #sidebar{width:100%;border-right:none;border-bottom:1px solid var(--border);}
-    #main{padding:14px;}
+    #sidebar{
+      position:fixed;left:0;right:0;bottom:0;top:auto;width:100%;height:auto;
+      flex-direction:row;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));
+      border-right:none;border-top:1px solid var(--border);
+      z-index:60;gap:0;overflow:visible;
+    }
+    .brand,#newBtn{display:none;}
+    #mainTabs{flex-direction:row;overflow-x:auto;gap:2px;width:100%;scrollbar-width:none;}
+    #mainTabs::-webkit-scrollbar{display:none;}
+    .mtab{flex-direction:column;gap:3px;padding:7px 10px;font-size:10px;min-width:62px;align-items:center;justify-content:center;text-align:center;white-space:nowrap;}
+    #main{padding:18px 14px 110px;}
+    .hero{grid-template-columns:1fr;}
     .summaryGrid{grid-template-columns:1fr;}
-    .day{min-height:56px;}
-    #focusDisplay{font-size:48px;}
+    .heroGreeting{font-size:22px;}
+    .day{min-height:56px;padding:5px;}
+    #fabBtn{
+      display:grid;place-items:center;position:fixed;right:16px;bottom:calc(78px + env(safe-area-inset-bottom,0px));
+      width:54px;height:54px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:28px;line-height:1;
+      box-shadow:0 10px 24px -6px var(--accent);z-index:70;padding:0;
+    }
+    #fabBtn:hover{background:var(--accent);filter:brightness(1.1);}
   }
 </style>
 </head>
 <body>
 
 <div id="sidebar">
-  <div>
-    <h1>Agenda</h1>
-    <div style="font-size:11px;color:var(--muted);">Recordatorios, suscripciones, deudas y metas</div>
+  <div class="brand">
+    <div class="brandMark">A</div>
+    <div><h1>Agenda</h1><small>Tu día, en orden</small></div>
   </div>
 
-  <form id="form">
-    <h2>Nuevo</h2>
-    <label>Título</label>
-    <input id="title" type="text" placeholder="Ej: Netflix, cuota tarjeta, turno médico" required>
+  <button id="newBtn" type="button"><span style="font-size:18px;line-height:1;">+</span> Nuevo</button>
 
-    <label>Tipo</label>
-    <select id="type">
-      <option value="reminder">Recordatorio</option>
-      <option value="subscription">Suscripción</option>
-      <option value="debt">Deuda</option>
-      <option value="trial">Período de prueba</option>
-    </select>
-
-    <label id="dateLabel">Fecha</label>
-    <input id="date" type="date" required>
-
-    <div id="amountField" style="display:none;">
-      <label id="amountLabel">Monto total de la deuda</label>
-      <input id="amount" type="number" min="0" step="0.01" placeholder="Ej: 50000">
-    </div>
-
-    <div id="repeatField">
-      <label>Repetición</label>
-      <select id="repeat">
-        <option value="none">No se repite</option>
-        <option value="weekly">Cada semana</option>
-        <option value="monthly">Cada mes</option>
-        <option value="yearly">Cada año</option>
-      </select>
-    </div>
-
-    <label>Notas (opcional)</label>
-    <input id="notes" type="text" placeholder="Monto, detalle, etc.">
-
-    <button type="submit">Agregar</button>
-  </form>
-
-  <div>
-    <h2>Referencias</h2>
-    <div style="font-size:12px;display:flex;flex-direction:column;gap:5px;color:var(--muted);">
-      <div><span class="dot reminder"></span> Recordatorio</div>
-      <div><span class="dot subscription"></span> Suscripción</div>
-      <div><span class="dot debt"></span> Deuda</div>
-      <div><span class="dot trial"></span> Período de prueba</div>
-      <div><span class="dot memory"></span> Recuerdo del día</div>
-      <div><span class="dot goal"></span> Meta de ahorro</div>
-    </div>
-  </div>
-
-  <div id="weatherBox" style="margin-top:auto;">
-
-    <div id="clock" style="font-size:26px;color:#ddd;text-align:center;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:10px;letter-spacing:1px;">
-      --:--:--
-    </div>
-    <h2 id="weatherCityLabel">Clima · Berazategui</h2>
-    <div id="weatherContent" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--muted);">
-      Cargando...
-    </div>
-    <div id="rainAlert" style="display:none;margin-top:8px;background:#2e2620;border:1px solid #4a3f2e;border-radius:8px;padding:10px 12px;font-size:12px;color:#d8c79a;">
-    </div>
-  </div>
+  <nav id="mainTabs">
+      <button class="mtab active" data-view="view-today"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>Hoy</span></button>
+      <button class="mtab" data-view="view-calendar"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><span>Calendario</span></button>
+      <button class="mtab" data-view="view-list"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Próximos</span></button>
+      <button class="mtab" data-view="view-debts"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span>Deudas</span></button>
+      <button class="mtab" data-view="view-goals"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg><span>Metas</span></button>
+      <button class="mtab" data-view="view-stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V10M12 21V4M19 21v-8"/></svg><span>Estadísticas</span></button>
+      <button class="mtab" data-view="view-movies"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 9l5 3-5 3z"/></svg><span>Series y películas</span></button>
+      <button class="mtab" data-view="view-visual"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Visual</span></button>
+  </nav>
 </div>
 
 <div id="main">
+<div class="page">
 
-  <div id="mainTabs">
-    <button class="mtab active" data-view="view-today">Hoy</button>
-    <button class="mtab" data-view="view-calendar">Calendario</button>
-    <button class="mtab" data-view="view-list">Próximos</button>
-    <button class="mtab" data-view="view-debts">Deudas</button>
-    <button class="mtab" data-view="view-goals">Metas</button>
-    <button class="mtab" data-view="view-stats">Estadísticas</button>
-    <button class="mtab" data-view="view-movies">Series y películas</button>
-    <button class="mtab" data-view="view-visual">Visual</button>
-  </div>
-
-  <!-- Resumen del día -->
   <div class="view active" id="view-today">
-    <h2>Resumen de hoy</h2>
+    <div class="hero">
+      <div class="card">
+        <div class="heroGreeting" id="greetingText">Hola</div>
+        <div class="heroDate" id="greetingDate"></div>
+        <div id="clock">--:--:--</div>
+      </div>
+      <div class="card" id="weatherBox">
+        <h2 id="weatherCityLabel">Clima · Berazategui</h2>
+        <div id="weatherContent">Cargando...</div>
+        <div id="rainAlert" style="display:none;"></div>
+      </div>
+    </div>
+
     <div class="summaryGrid">
       <div class="summaryCard">
         <div class="label">Eventos hoy</div>
@@ -403,8 +394,15 @@
     </div>
 
     <div id="summaryTrialWarn"></div>
+    <div id="memoryCards"></div>
 
-    <h2>Para hoy</h2>
+    <div class="weekCard">
+      <h2>Esta semana</h2>
+      <div class="weekStats" id="weekStats"></div>
+      <div id="weekList"></div>
+    </div>
+
+    <h2 class="section">Para hoy</h2>
     <div id="summaryTodayList"></div>
   </div>
 
@@ -472,6 +470,7 @@
       <div class="label">Gasto mensual en suscripciones activas</div>
       <div class="value" id="statSubsMonthly">$0</div>
       <div class="sub" id="statSubsCount">0 suscripciones cargadas con monto</div>
+      <div class="sub" id="statSubsYearly"></div>
     </div>
     <div class="statCard">
       <div class="label">Pagado en deudas este mes</div>
@@ -515,6 +514,11 @@
         <input type="color" data-var="--text" id="color-text">
       </div>
 
+      <div class="colorRow">
+        <div><div class="label">Color de acento</div><div class="sub">Botones y detalles destacados</div></div>
+        <input type="color" data-var="--accent" id="color-accent">
+      </div>
+
       <h2>Colores por categoría</h2>
       <div class="colorRow">
         <div><div class="label">Recordatorio</div></div>
@@ -555,6 +559,54 @@
     </div>
   </div>
 
+
+</div>
+</div>
+
+<button id="fabBtn" type="button" aria-label="Nuevo">+</button>
+
+<div class="overlay" id="newOverlay">
+  <div class="modalBox">
+    <div class="modalHead">
+      <h3>Nuevo</h3>
+      <button class="del" id="newClose" type="button" aria-label="Cerrar">✕</button>
+    </div>
+    <form id="form">
+      <label>Título</label>
+      <input id="title" type="text" placeholder="Ej: Netflix, cuota tarjeta, turno médico" required>
+
+      <label>Tipo</label>
+      <select id="type">
+        <option value="reminder">Recordatorio</option>
+        <option value="subscription">Suscripción</option>
+        <option value="debt">Deuda</option>
+        <option value="trial">Período de prueba</option>
+      </select>
+
+      <label id="dateLabel">Fecha</label>
+      <input id="date" type="date" required>
+
+      <div id="amountField" style="display:none;">
+        <label id="amountLabel">Monto total de la deuda</label>
+        <input id="amount" type="number" min="0" step="0.01" placeholder="Ej: 50000">
+      </div>
+
+      <div id="repeatField">
+        <label>Repetición</label>
+        <select id="repeat">
+          <option value="none">No se repite</option>
+          <option value="weekly">Cada semana</option>
+          <option value="monthly">Cada mes</option>
+          <option value="yearly">Cada año</option>
+        </select>
+      </div>
+
+      <label>Notas (opcional)</label>
+      <input id="notes" type="text" placeholder="Monto, detalle, etc.">
+
+      <button type="submit" style="background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;margin-top:6px;">Agregar</button>
+    </form>
+  </div>
 </div>
 
 <div id="movieModalOverlay">
@@ -775,6 +827,7 @@ document.getElementById("form").addEventListener("submit", (e)=>{
   document.getElementById("dateLabel").textContent = "Fecha";
   document.getElementById("amountField").style.display = "none";
   render();
+  closeNewModal();
 });
 
 function removeItem(id){
@@ -885,6 +938,7 @@ function render(){
   renderGoals();
   renderSummary();
   renderStats();
+  renderHome();
 }
 
 // --- Deudas ---
@@ -1083,6 +1137,7 @@ document.getElementById("modalSave").addEventListener("click", ()=>{
   closeDayModal();
   renderCalendar();
   renderStats();
+  renderHome();
 });
 document.getElementById("modalDelete").addEventListener("click", ()=>{
   delete dayNotes[currentModalDate];
@@ -1090,6 +1145,7 @@ document.getElementById("modalDelete").addEventListener("click", ()=>{
   closeDayModal();
   renderCalendar();
   renderStats();
+  renderHome();
 });
 modalOverlay.addEventListener("click", (e)=>{
   if(e.target === modalOverlay) closeDayModal();
@@ -1153,6 +1209,7 @@ function renderStats(){
   const subsTotal = subs.reduce((s,i)=> s + i.amount, 0);
   document.getElementById("statSubsMonthly").textContent = fmtMoney(subsTotal);
   document.getElementById("statSubsCount").textContent = `${subs.length} suscripción(es) con monto cargado`;
+  document.getElementById("statSubsYearly").textContent = "Por año: " + fmtMoney(subsTotal * 12);
 
   const now = new Date();
   const thisMonthKey = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,"0");
@@ -1185,21 +1242,148 @@ function renderStats(){
   document.getElementById("statStreak").textContent = streak + (streak === 1 ? " día seguido" : " días seguidos");
 }
 
+// --- Inicio: saludo, resumen de la semana y recuerdos ---
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function renderGreeting(){
+  const h = new Date().getHours();
+  const text = h < 6 ? "Buenas noches" : h < 13 ? "Buen día" : h < 20 ? "Buenas tardes" : "Buenas noches";
+  document.getElementById("greetingText").textContent = text;
+  document.getElementById("greetingDate").textContent =
+    capitalize(new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" }));
+}
+
+function dayLabel(dateStr){
+  const today = todayStr();
+  const tomorrow = (()=>{ const d = new Date(); d.setDate(d.getDate() + 1); return localISO(d); })();
+  if(dateStr === today) return "Hoy";
+  if(dateStr === tomorrow) return "Mañana";
+  return capitalize(new Date(dateStr + "T00:00:00").toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "short" }));
+}
+
+function renderWeek(){
+  const start = todayStr();
+  const endD = new Date(); endD.setDate(endD.getDate() + 7);
+  const end = localISO(endD);
+  const upcoming = items
+    .filter(i => i.date >= start && i.date <= end)
+    .sort((a,b)=> a.date.localeCompare(b.date));
+
+  const subsSum = upcoming.filter(i => i.type === "subscription" && i.amount).reduce((s,i)=> s + i.amount, 0);
+  const debts = upcoming.filter(i => i.type === "debt");
+  const debtsLeft = debts.reduce((s,d)=>{
+    const paid = (d.payments || []).reduce((ss,p)=> ss + p.amount, 0);
+    return s + Math.max((d.amount || 0) - paid, 0);
+  }, 0);
+  const trials = upcoming.filter(i => i.type === "trial");
+
+  document.getElementById("weekStats").innerHTML = `
+    <div class="weekStat"><div class="label">Eventos en 7 días</div><div class="value">${upcoming.length}</div></div>
+    <div class="weekStat"><div class="label">Suscripciones a pagar</div><div class="value">${fmtMoney(subsSum)}</div></div>
+    <div class="weekStat"><div class="label">Deudas que vencen</div><div class="value">${debts.length}${debts.length ? ` · ${fmtMoney(debtsLeft)}` : ""}</div></div>
+    <div class="weekStat"><div class="label">Pruebas por cancelar</div><div class="value">${trials.length}</div></div>
+  `;
+
+  const list = document.getElementById("weekList");
+  if(upcoming.length === 0){
+    list.innerHTML = `<div class="empty-msg">No tenés nada agendado para los próximos 7 días.</div>`;
+    return;
+  }
+  const groups = {};
+  upcoming.forEach(i => { (groups[i.date] = groups[i.date] || []).push(i); });
+  list.innerHTML = Object.keys(groups).sort().map(date => `
+    <div class="dayGroup">
+      <h3>${escapeHtml(dayLabel(date))}</h3>
+      ${groups[date].map(i => {
+        let extra = "";
+        if(i.type === "subscription" && i.amount) extra = " · " + fmtMoney(i.amount);
+        if(i.type === "debt" && i.amount){
+          const paid = (i.payments || []).reduce((s,p)=> s + p.amount, 0);
+          extra = " · Restante " + fmtMoney(Math.max(i.amount - paid, 0));
+        }
+        return `
+          <div class="item type-${i.type}">
+            <div class="info">
+              <div class="title">${escapeHtml(i.title)}</div>
+              <div class="meta">${escapeHtml(typeLabels[i.type])}${extra}${i.notes ? " · " + escapeHtml(i.notes) : ""}</div>
+            </div>
+          </div>`;
+      }).join("")}
+    </div>
+  `).join("");
+}
+
+function renderMemories(){
+  const box = document.getElementById("memoryCards");
+  const now = new Date();
+  const found = [];
+  [[new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()), "Hace un año"],
+   [new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()), "Hace un mes"]].forEach(([d, label])=>{
+    const key = localISO(d);
+    if(dayNotes[key]) found.push({ label, key, text: dayNotes[key] });
+  });
+
+  let html = found.map(f => `
+    <div class="memoryCard">
+      <div class="when">${escapeHtml(f.label)} · ${escapeHtml(fmtDate(f.key))}</div>
+      <div class="text">${escapeHtml(f.text)}</div>
+    </div>`).join("");
+
+  if(!dayNotes[todayStr()]){
+    html += `
+      <div class="memoryCard">
+        <div class="when">Recuerdo de hoy</div>
+        <div class="text" style="color:var(--muted);">¿Qué pasó hoy? Anotalo y dentro de un tiempo te lo vamos a recordar.</div>
+        <div class="cta"><button type="button" id="writeTodayBtn">Escribir el recuerdo de hoy</button></div>
+      </div>`;
+  }
+  box.innerHTML = html;
+  const btn = document.getElementById("writeTodayBtn");
+  if(btn) btn.addEventListener("click", ()=> openDayModal(todayStr()));
+}
+
+function renderHome(){
+  renderGreeting();
+  renderWeek();
+  renderMemories();
+}
+
+// --- Ventana "Nuevo" (botón + en el celular) ---
+const newOverlay = document.getElementById("newOverlay");
+function openNewModal(){
+  const dateInput = document.getElementById("date");
+  if(!dateInput.value) dateInput.value = todayStr();
+  newOverlay.classList.add("open");
+  document.getElementById("title").focus();
+}
+function closeNewModal(){
+  newOverlay.classList.remove("open");
+}
+document.getElementById("newBtn").addEventListener("click", openNewModal);
+document.getElementById("fabBtn").addEventListener("click", openNewModal);
+document.getElementById("newClose").addEventListener("click", closeNewModal);
+newOverlay.addEventListener("click", (e)=>{ if(e.target === newOverlay) closeNewModal(); });
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeNewModal(); });
+
 rollForwardRecurring();
 render();
 
 // --- Visual (personalización de colores) ---
-const VISUAL_KEY = "agenda_visual_colors_v1";
+const VISUAL_KEY = "agenda_visual_colors_v2";
 const DEFAULT_COLORS = {
-  "--bg": "#141414",
-  "--panel2": "#232323",
-  "--text": "#e4e4e4",
-  "--c-reminder": "#5b7fa6",
-  "--c-subscription": "#a68a4d",
-  "--c-debt": "#a65b5b",
-  "--c-trial": "#4d9e7a",
-  "--c-memory": "#7a6ba6",
-  "--c-goal": "#4d9ea0"
+  "--bg": "#0e1116",
+  "--panel2": "#1a1f2a",
+  "--text": "#e9ecf3",
+  "--accent": "#6c8cff",
+  "--c-reminder": "#6c8cff",
+  "--c-subscription": "#f2b950",
+  "--c-debt": "#ef6b6b",
+  "--c-trial": "#3fc79a",
+  "--c-memory": "#a78bfa",
+  "--c-goal": "#38bdf8"
 };
 
 function loadVisualColors(){
@@ -1609,6 +1793,13 @@ const CHANGELOG = [
       "Se corrigió un error de fecha que mostraba el día siguiente después de las 21:00.",
       "La web se adapta mejor a pantallas chicas.",
       "Nueva copia de seguridad en la pestaña Visual: descargá tus datos y restauralos cuando quieras."
+  ]},
+  { id: "2026-10-04-renovacion", items: [
+      "Diseño renovado: menú lateral con íconos, tarjetas nuevas y botón + para agregar rápido desde el celular.",
+      "Nuevo panel Esta semana en Inicio: qué vence en los próximos 7 días y cuánto vas a pagar.",
+      "Recuerdos de hace un año y de hace un mes aparecen en Inicio.",
+      "Estadísticas muestran también el gasto anual en suscripciones.",
+      "Los colores de la pestaña Visual se reiniciaron por el nuevo diseño, y ahora podés elegir un color de acento."
   ]}
 ];
 const CHANGELOG_SEEN_KEY = "agenda_changelog_seen_v1";
