@@ -331,6 +331,41 @@
   .usageBtn.sel-yes{background:color-mix(in srgb,var(--c-trial) 22%,transparent);border-color:var(--c-trial);}
   .usageBtn.sel-no{background:color-mix(in srgb,var(--c-debt) 22%,transparent);border-color:var(--c-debt);}
 
+  /* ---------- Suscripciones con íconos ---------- */
+  .subsHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+  .subsHead h2{margin-bottom:4px;}
+  .subsSummary{font-size:15px;color:var(--text);}
+  .subsSummary span{color:var(--muted);}
+  .primaryBtn{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;padding:10px 18px;}
+  .primaryBtn:hover{background:var(--accent);border-color:var(--accent);filter:brightness(1.1);}
+  #subsList{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
+  .subCard{background:var(--panel2);border:1px solid var(--border);border-left:1px solid var(--border);border-radius:var(--radius);padding:16px;margin:0;cursor:pointer;transition:border-color .15s,transform .1s;}
+  .subCard:hover{border-color:#3a4358;transform:translateY(-2px);}
+  .subTop{display:flex;align-items:center;gap:12px;}
+  .subInfo{flex:1;min-width:0;}
+  .subInfo .name{font-size:15px;font-weight:600;overflow-wrap:anywhere;}
+  .subInfo .plan{font-size:12px;color:var(--muted);margin-top:2px;}
+  .subPrice{font-size:17px;font-weight:700;text-align:right;white-space:nowrap;}
+  .subPrice small{display:block;font-size:11px;font-weight:400;color:var(--muted);}
+  .subCard .cost{font-size:12px;color:var(--muted);margin-top:12px;}
+  .svcIcon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px;flex-shrink:0;}
+  .svcIcon svg{width:24px;height:24px;fill:#fff;}
+  .svcIcon.big{width:52px;height:52px;border-radius:14px;}
+  .svcIcon.big svg{width:28px;height:28px;}
+  #svcGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;}
+  .svcTile{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 6px;font-size:12px;text-align:center;border-radius:14px;}
+  .svcHeader{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .svcHeader .nm{font-size:17px;font-weight:600;}
+  #planChips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px;}
+  .chip{padding:8px 14px;border-radius:20px;font-size:13px;}
+  .chip small{display:block;font-size:10px;color:var(--muted);}
+  .chip.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,transparent);}
+  #subHistory{margin-top:10px;font-size:12px;color:var(--muted);}
+  #subHistory .row{display:flex;justify-content:space-between;padding:3px 0;}
+  #subHistory .change{color:var(--c-subscription);margin-bottom:6px;font-size:13px;}
+  #subMsg{font-size:12px;color:var(--c-debt);min-height:16px;margin-top:6px;}
+  .modalBox.wide{width:540px;}
+
   /* ---------- Botón flotante (solo celular) ---------- */
   #fabBtn{display:none;}
 
@@ -352,6 +387,7 @@
     .summaryGrid{grid-template-columns:1fr;}
     .heroGreeting{font-size:22px;}
     .planRow{grid-template-columns:1fr;}
+    #subsList{grid-template-columns:1fr;}
     .day{min-height:56px;padding:5px;}
     #fabBtn{
       display:grid;place-items:center;position:fixed;right:16px;bottom:calc(78px + env(safe-area-inset-bottom,0px));
@@ -377,6 +413,7 @@
       <button class="mtab" data-view="view-calendar"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><span>Calendario</span></button>
       <button class="mtab" data-view="view-list"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Próximos</span></button>
       <button class="mtab" data-view="view-debts"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span>Deudas</span></button>
+      <button class="mtab" data-view="view-subs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg><span>Suscripciones</span></button>
       <button class="mtab" data-view="view-goals"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg><span>Metas</span></button>
       <button class="mtab" data-view="view-stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V10M12 21V4M19 21v-8"/></svg><span>Estadísticas</span></button>
       <button class="mtab" data-view="view-movies"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 9l5 3-5 3z"/></svg><span>Series y películas</span></button>
@@ -489,6 +526,17 @@
     <div id="debtsList"></div>
   </div>
 
+  <div class="view" id="view-subs">
+    <div class="subsHead">
+      <div>
+        <h2>Suscripciones</h2>
+        <div class="subsSummary" id="subsSummary"></div>
+      </div>
+      <button type="button" class="primaryBtn" id="addSubBtn">+ Agregar</button>
+    </div>
+    <div id="subsList"></div>
+  </div>
+
   <div class="view" id="view-goals">
     <h2>Metas de ahorro</h2>
     <div id="goalsTotal">
@@ -527,9 +575,6 @@
       <div class="value" id="statStreak">0 días seguidos</div>
       <div class="sub">Contando hacia atrás desde hoy</div>
     </div>
-
-    <h2 style="margin-top:24px;">Tus suscripciones</h2>
-    <div id="subsList"></div>
   </div>
 
   <div class="view" id="view-movies">
@@ -654,6 +699,54 @@
 
       <button type="submit" style="background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;margin-top:6px;">Agregar</button>
     </form>
+  </div>
+</div>
+
+<div class="overlay" id="subOverlay">
+  <div class="modalBox wide">
+    <div class="modalHead">
+      <h3 id="subModalTitle">Agregar suscripción</h3>
+      <button class="del" id="subModalClose" type="button" aria-label="Cerrar">✕</button>
+    </div>
+
+    <div id="subStepPick">
+      <div class="sub" style="font-size:12px;color:var(--muted);margin-bottom:12px;">Elegí la app o servicio.</div>
+      <div id="svcGrid"></div>
+    </div>
+
+    <div id="subStepForm" style="display:none;">
+      <div class="svcHeader" id="svcHeader"></div>
+
+      <div id="subNameField" style="display:none;">
+        <label>Nombre</label>
+        <input id="subName" type="text" placeholder="Ej: Gimnasio, revista, hosting">
+      </div>
+
+      <label>Plan</label>
+      <div id="planChips"></div>
+      <input id="subPlanCustom" type="text" placeholder="Nombre de tu plan" style="display:none;margin-bottom:10px;">
+
+      <label>Lo que te cobran por vez (con impuestos)</label>
+      <input id="subPrice" type="number" min="0" step="0.01" placeholder="Ej: 14999" style="margin-bottom:10px;">
+
+      <label>Se cobra</label>
+      <select id="subRepeat" style="margin-bottom:10px;">
+        <option value="monthly">Cada mes</option>
+        <option value="yearly">Cada año</option>
+      </select>
+
+      <label>Fecha del próximo cobro</label>
+      <input id="subDate" type="date">
+
+      <div id="subHistory"></div>
+      <div id="subMsg"></div>
+
+      <div class="modalActions">
+        <button type="button" id="subDelete" style="margin-right:auto;background:transparent;color:var(--c-debt);display:none;">Quitar</button>
+        <button type="button" id="subBack">Atrás</button>
+        <button type="button" id="subSave" class="primaryBtn">Guardar</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -838,6 +931,12 @@ document.querySelectorAll(".mtab").forEach(btn=>{
 
 document.getElementById("type").addEventListener("change", (e)=>{
   const t = e.target.value;
+  if(t === "subscription"){
+    document.getElementById("type").value = "reminder";
+    closeNewModal();
+    openSubModal(null);
+    return;
+  }
   document.getElementById("dateLabel").textContent =
     t === "trial" ? "Fecha límite para cancelar" : "Fecha";
   const amountField = document.getElementById("amountField");
@@ -958,7 +1057,7 @@ function renderList(){
       const remaining = Math.max(i.amount - paid, 0);
       metaExtra += ` · Restante ${fmtMoney(remaining)}`;
     } else if(i.type === "subscription" && i.amount){
-      metaExtra += ` · ${fmtMoney(i.amount)}/mes`;
+      metaExtra += ` · ${fmtMoney(i.amount)}${i.repeat === "yearly" ? "/año" : "/mes"}`;
     }
     const repeatBadge = (i.repeat && i.repeat !== "none") ? `<span class="repeatTag">${repeatLabels[i.repeat]}</span>` : "";
     div.innerHTML = `
@@ -1277,7 +1376,7 @@ function renderSummary(){
 // --- Estadísticas ---
 function renderStats(){
   const subs = items.filter(i => i.type === "subscription" && i.amount);
-  const subsTotal = subs.reduce((s,i)=> s + i.amount, 0);
+  const subsTotal = subs.reduce((s,i)=> s + monthlyCost(i), 0);
   document.getElementById("statSubsMonthly").textContent = fmtMoney(subsTotal);
   document.getElementById("statSubsCount").textContent = `${subs.length} suscripción(es) con monto cargado`;
   document.getElementById("statSubsYearly").textContent = "Por año: " + fmtMoney(subsTotal * 12);
@@ -1563,50 +1662,158 @@ document.getElementById("planStrategy").addEventListener("change", ()=>{
   renderDebtPlan();
 });
 
-// --- Suscripciones que te cuidan el bolsillo ---
+const SERVICES = [
+  {"id": "netflix", "name": "Netflix", "color": "#E50914", "icon": "m5.398 0 8.348 23.602c2.346.059 4.856.398 4.856.398L10.113 0H5.398zm8.489 0v9.172l4.715 13.33V0h-4.715zM5.398 1.5V24c1.873-.225 2.81-.312 4.715-.398V14.83L5.398 1.5z", "letters": "", "plans": ["Básico", "Estándar", "Premium"]},
+  {"id": "disney", "name": "Disney+", "color": "#113CCF", "icon": "", "letters": "D+", "plans": ["Estándar", "Premium"]},
+  {"id": "hbomax", "name": "HBO Max", "color": "#5822B4", "icon": "M3.784 8.716c-.655 0-1.32.29-2.173.946v-.78H0v6.236h1.715V11.24c.749-.592 1.091-.78 1.372-.78.333 0 .551.209.551.729v3.928h1.715V11.23c.748-.582 1.081-.769 1.372-.769.333 0 .55.208.55.728v3.928H8.99v-4.53c0-1.403-.8-1.871-1.57-1.871-.654 0-1.32.27-2.192.936-.28-.697-.894-.936-1.444-.936zm8.689 0c-1.705 0-3.118 1.466-3.118 3.284 0 1.82 1.413 3.285 3.118 3.285.842 0 1.57-.312 2.131-.988v.82h1.632V8.883h-1.632v.822c-.561-.676-1.29-.988-2.131-.988zm4.064.166c.707 1.102 1.507 2.09 2.443 3.077a26.593 26.593 0 0 0-2.443 3.16h2.069a13.603 13.603 0 0 1 1.673-2.183 14.067 14.067 0 0 1 1.632 2.182H24a25.142 25.142 0 0 0-2.432-3.16A23.918 23.918 0 0 0 24 8.883h-2.047a14.65 14.65 0 0 1-1.674 2.11 13.357 13.357 0 0 1-1.674-2.11zm-3.804 1.279c1.018 0 1.84.82 1.84 1.84a1.837 1.837 0 0 1-1.84 1.839c-1.019 0-1.84-.82-1.84-1.84 0-1.018.821-1.84 1.84-1.84zm0 .415c-.78 0-1.414.633-1.414 1.423s.634 1.424 1.413 1.424c.78 0 1.414-.634 1.414-1.424s-.634-1.424-1.414-1.424z", "letters": "", "plans": ["Básico", "Estándar", "Premium"]},
+  {"id": "prime", "name": "Prime Video", "color": "#00A8E1", "icon": "", "letters": "P", "plans": ["Mensual", "Anual"]},
+  {"id": "paramount", "name": "Paramount+", "color": "#0064FF", "icon": "M16.347 21.373c.057-.084.151-.314-.025-.74l-.53-1.428c-.073-.182.084-.293.19-.173 0 0 1.004 1.157 1.264 1.64l.495.822c.425.028 1.6.06 2.732.06a3.26 3.26 0 0 1-.316-.364c-1.93-2.392-3.154-3.724-3.166-3.737-.391-.426-.572-.508-.87-.643a4.82 4.82 0 0 1-.138-.065v.364c0 .047-.057.073-.086.022l-2.846-5.001a1.598 1.598 0 0 0-.508-.587l-.277-.194-1.354 3.123c.212 0 .354.216.27.409l-1.25 2.893h1.147c.443 0 .883.087 1.294.255l.302.125s-.913 1.878-.913 2.867c0 .181.028.362.075.534h2.104l-.096-.595s1.266.294 2.502.413M12 2.437c-6.627 0-12 5.373-12 12 0 2.669.873 5.133 2.346 7.126.503-.218.783-.542.983-.791l2.234-2.858a.467.467 0 0 1 .179-.138l.336-.146 3.674-4.659.534-.417 1.094-1.524a.482.482 0 0 1 .101-.102l.478-.347a.34.34 0 0 1 .398-.004l.578.407c.308.216.557.504.726.84l2.322 4.077c.051.09.09.129.182.174.454.227.732.268 1.33.913.277.304 1.495 1.666 3.203 3.784.236.318.538.588.963.783A11.948 11.948 0 0 0 24 14.437c0-6.627-5.373-12-12-12M3.236 15.1l-.778-.253-.48.662v-.818l-.778-.253.778-.253v-.818l.48.662.778-.253-.48.662Zm-.185 2.676-.252.778-.253-.778h-.818l.661-.481-.253-.777.663.48.66-.48-.252.777.662.481Zm.156-6.195.253.778-.661-.48-.663.48.253-.778-.66-.48h.817l.253-.778.252.777h.818Zm1.314-1.76L4.04 9.16l-.778.253.48-.661-.48-.663.778.254.48-.662v.818l.778.253-.777.252Zm2.045-2.862-.253.777-.252-.777h-.818l.662-.48-.253-.778.661.48.661-.48-.252.777.662.48Zm2.577-1.313-.48.661V5.49l-.779-.254.778-.253v-.817l.48.66.78-.253-.481.663.48.66zm3.265-.75.253.778-.661-.48-.662.48.252-.777-.66-.481h.818L12 3.637l.252.778h.818zm2.93.595v.816l-.481-.661-.777.252.48-.662-.48-.662.777.253.48-.66v.817l.779.252zm5.426 8.285.778.253.48-.662v.818l.778.253-.778.253v.818l-.48-.662-.778.253.48-.662zm-3.077-6.04-.253-.777h-.818l.662-.48-.253-.778.662.48.662-.48-.254.778.662.48h-.818zm1.792 2.086v-.818l-.777-.252.777-.253V7.68l.481.662.777-.254-.48.663.48.66-.777-.252zm1.469 1.278.253-.777.254.777h.816l-.66.481.252.778-.662-.48-.661.48.253-.778-.662-.48zm.506 6.676-.253.778-.253-.778h-.817l.662-.481-.253-.777.66.48.663-.48-.253.777.661.481zm-12.08-.615.76-1.588c.024-.048-.032-.108-.067-.067l-.664.668c-.313.329-.847 1.25-.95 1.421l-.808 1.335a.109.109 0 0 1 .1.162l-.739 1.238c-.18.309.145.523.189.452 1.157-1.868 1.832-1.719 1.832-1.719l.387-.897c.022-.047-.001-.1-.05-.12-.12-.05-.316-.27.01-.885z", "letters": "", "plans": []},
+  {"id": "crunchyroll", "name": "Crunchyroll", "color": "#F47521", "icon": "M2.909 13.436C2.914 7.61 7.642 2.893 13.468 2.898c5.576.005 10.137 4.339 10.51 9.819q.021-.351.022-.706C24.007 5.385 18.64.006 12.012 0S.007 5.36 0 11.988 5.36 23.994 11.988 24q.412 0 .815-.027c-5.526-.338-9.9-4.928-9.894-10.538Zm16.284.155a4.1 4.1 0 0 1-4.095-4.103 4.1 4.1 0 0 1 2.712-3.855 8.95 8.95 0 0 0-4.187-1.037 9.007 9.007 0 1 0 8.997 9.016q-.001-.847-.15-1.651a4.1 4.1 0 0 1-3.278 1.63Z", "letters": "", "plans": ["Fan", "Mega Fan", "Ultimate Fan"]},
+  {"id": "youtube", "name": "YouTube Premium", "color": "#FF0000", "icon": "M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z", "letters": "", "plans": ["Individual", "Familiar", "Estudiantes"]},
+  {"id": "spotify", "name": "Spotify", "color": "#1DB954", "icon": "M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z", "letters": "", "plans": ["Individual", "Duo", "Familiar", "Estudiantes"]},
+  {"id": "applemusic", "name": "Apple Music", "color": "#FA243C", "icon": "M23.994 6.124a9.23 9.23 0 00-.24-2.19c-.317-1.31-1.062-2.31-2.18-3.043a5.022 5.022 0 00-1.877-.726 10.496 10.496 0 00-1.564-.15c-.04-.003-.083-.01-.124-.013H5.986c-.152.01-.303.017-.455.026-.747.043-1.49.123-2.193.4-1.336.53-2.3 1.452-2.865 2.78-.192.448-.292.925-.363 1.408-.056.392-.088.785-.1 1.18 0 .032-.007.062-.01.093v12.223c.01.14.017.283.027.424.05.815.154 1.624.497 2.373.65 1.42 1.738 2.353 3.234 2.801.42.127.856.187 1.293.228.555.053 1.11.06 1.667.06h11.03a12.5 12.5 0 001.57-.1c.822-.106 1.596-.35 2.295-.81a5.046 5.046 0 001.88-2.207c.186-.42.293-.87.37-1.324.113-.675.138-1.358.137-2.04-.002-3.8 0-7.595-.003-11.393zm-6.423 3.99v5.712c0 .417-.058.827-.244 1.206-.29.59-.76.962-1.388 1.14-.35.1-.706.157-1.07.173-.95.045-1.773-.6-1.943-1.536a1.88 1.88 0 011.038-2.022c.323-.16.67-.25 1.018-.324.378-.082.758-.153 1.134-.24.274-.063.457-.23.51-.516a.904.904 0 00.02-.193c0-1.815 0-3.63-.002-5.443a.725.725 0 00-.026-.185c-.04-.15-.15-.243-.304-.234-.16.01-.318.035-.475.066-.76.15-1.52.303-2.28.456l-2.325.47-1.374.278c-.016.003-.032.01-.048.013-.277.077-.377.203-.39.49-.002.042 0 .086 0 .13-.002 2.602 0 5.204-.003 7.805 0 .42-.047.836-.215 1.227-.278.64-.77 1.04-1.434 1.233-.35.1-.71.16-1.075.172-.96.036-1.755-.6-1.92-1.544-.14-.812.23-1.685 1.154-2.075.357-.15.73-.232 1.108-.31.287-.06.575-.116.86-.177.383-.083.583-.323.6-.714v-.15c0-2.96 0-5.922.002-8.882 0-.123.013-.25.042-.37.07-.285.273-.448.546-.518.255-.066.515-.112.774-.165.733-.15 1.466-.296 2.2-.444l2.27-.46c.67-.134 1.34-.27 2.01-.403.22-.043.442-.088.663-.106.31-.025.523.17.554.482.008.073.012.148.012.223.002 1.91.002 3.822 0 5.732z", "letters": "", "plans": ["Individual", "Familiar", "Estudiantes"]},
+  {"id": "appletv", "name": "Apple TV+", "color": "#3a4152", "icon": "M20.57 17.735h-1.815l-3.34-9.203h1.633l2.02 5.987c.075.231.273.9.586 2.012l.297-.997.33-1.006 2.094-6.004H24zm-5.344-.066a5.76 5.76 0 0 1-1.55.207c-1.23 0-1.84-.693-1.84-2.087V9.646h-1.063V8.532h1.121V7.081l1.476-.602v2.062h1.707v1.113H13.38v5.805c0 .446.074.75.214.932.14.182.396.264.75.264.207 0 .495-.041.883-.115zm-7.29-5.343c.017 1.764 1.55 2.358 1.567 2.366-.017.042-.248.842-.808 1.658-.487.71-.99 1.418-1.79 1.435-.783.016-1.03-.462-1.93-.462-.89 0-1.17.445-1.913.478-.758.025-1.344-.775-1.838-1.484-.998-1.451-1.765-4.098-.734-5.88.51-.89 1.426-1.451 2.416-1.46.75-.016 1.468.512 1.93.512.461 0 1.327-.627 2.234-.536.38.016 1.452.157 2.136 1.154-.058.033-1.278.743-1.27 2.219M6.468 7.988c.404-.495.685-1.18.61-1.864-.585.025-1.294.388-1.723.883-.38.437-.71 1.138-.619 1.806.652.05 1.328-.338 1.732-.825Z", "letters": "", "plans": ["Mensual"]},
+  {"id": "icloud", "name": "iCloud+", "color": "#3693F3", "icon": "M13.762 4.29a6.51 6.51 0 0 0-5.669 3.332 3.571 3.571 0 0 0-1.558-.36 3.571 3.571 0 0 0-3.516 3A4.918 4.918 0 0 0 0 14.796a4.918 4.918 0 0 0 4.92 4.914 4.93 4.93 0 0 0 .617-.045h14.42c2.305-.272 4.041-2.258 4.043-4.589v-.009a4.594 4.594 0 0 0-3.727-4.508 6.51 6.51 0 0 0-6.511-6.27z", "letters": "", "plans": ["50 GB", "200 GB", "2 TB"]},
+  {"id": "google", "name": "Google One", "color": "#4285F4", "icon": "", "letters": "G", "plans": ["100 GB", "200 GB", "2 TB"]},
+  {"id": "microsoft", "name": "Microsoft 365", "color": "#D83B01", "icon": "", "letters": "M", "plans": ["Personal", "Familia"]},
+  {"id": "chatgpt", "name": "ChatGPT", "color": "#10A37F", "icon": "", "letters": "GPT", "plans": ["Plus", "Pro"]},
+  {"id": "claude", "name": "Claude", "color": "#D97757", "icon": "m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z", "letters": "", "plans": ["Pro", "Max"]},
+  {"id": "playstation", "name": "PlayStation Plus", "color": "#003791", "icon": "M8.984 2.596v17.547l3.915 1.261V6.688c0-.69.304-1.151.794-.991.636.18.76.814.76 1.505v5.875c2.441 1.193 4.362-.002 4.362-3.152 0-3.237-1.126-4.675-4.438-5.827-1.307-.448-3.728-1.186-5.39-1.502zm4.656 16.241l6.296-2.275c.715-.258.826-.625.246-.818-.586-.192-1.637-.139-2.357.123l-4.205 1.5V14.98l.24-.085s1.201-.42 2.913-.615c1.696-.18 3.785.03 5.437.661 1.848.601 2.04 1.472 1.576 2.072-.465.6-1.622 1.036-1.622 1.036l-8.544 3.107V18.86zM1.807 18.6c-1.9-.545-2.214-1.668-1.352-2.32.801-.586 2.16-1.052 2.16-1.052l5.615-2.013v2.313L4.205 17c-.705.271-.825.632-.239.826.586.195 1.637.15 2.343-.12L8.247 17v2.074c-.12.03-.256.044-.39.073-1.939.331-3.996.196-6.038-.479z", "letters": "", "plans": ["Essential", "Extra", "Premium"]},
+  {"id": "xbox", "name": "Xbox Game Pass", "color": "#107C10", "icon": "", "letters": "X", "plans": ["Core", "Standard", "Ultimate"]},
+  {"id": "nintendo", "name": "Nintendo Switch Online", "color": "#E60012", "icon": "", "letters": "N", "plans": ["Individual", "Familiar"]},
+  {"id": "duolingo", "name": "Duolingo", "color": "#58CC02", "icon": "M14.484 18.213c1.142 1.033 2.657 1.662 4.316 1.662l.294-.001c1.985-.038 3.749-.976 4.905-2.422v1.98c0 2.522-2.043 4.568-4.567 4.568H4.569C2.045 23.998.002 21.954.002 19.43v-1.92c1.181 1.443 2.976 2.365 4.985 2.365l.35-.001c1.61-.027 3.076-.646 4.191-1.648.555.764 1.456 1.26 2.473 1.26 1.023 0 1.928-.502 2.483-1.273zm-5.349-.996c-.989 1.022-2.375 1.658-3.909 1.658h-.239c-2.229 0-4.146-1.343-4.987-3.262v-7.16c.281-.64.68-1.216 1.169-1.699-.035-.731.132-1.469.511-2.128.256-.44.867-.504 1.21-.124l.766.851c.007-.003.014-.003.021-.005-.098-.78.037-1.587.419-2.308.24-.45.757-.53 1.114-.164 0 0 3.939 3.979 4.035 4.084 1.542 1.348 4.066 1.287 5.686-.18.002-.003.007-.005.009-.007.042-.042 3.855-3.9 3.855-3.9.3361-.3451.8619-.3101 1.113.164.385.724.518 1.535.417 2.32.002.001.003.001.004.002l.007.002c.001 0 .002 0 .003.001l.776-.86c.342-.38.954-.316 1.207.124.387.673.553 1.427.509 2.173.496.501.897 1.099 1.169 1.762v6.941c-.816 1.978-2.761 3.373-5.032 3.373H18.8c-1.547 0-2.945-.648-3.936-1.686a.8386.8386 0 0 0-.009-.067c.313-.017.528-.162.688-.33.152-.16.299-.397.299-.776 0 0-.022-.312-.024-.324.693.767 1.696 1.249 2.811 1.249 2.092 0 3.787-1.696 3.787-3.787v-2.243c0-2.092-1.697-3.787-3.787-3.787-2.093 0-3.787 1.695-3.787 3.787v2.243c0 .266.027.526.079.776-.712-.784-1.744-1.278-2.842-1.278-1.239 0-2.339.523-3.064 1.355.063-.274.097-.56.097-.853v-2.243c0-2.092-1.697-3.787-3.788-3.787-2.09 0-3.787 1.695-3.787 3.787v2.243c0 2.093 1.697 3.787 3.787 3.787 1.151 0 2.182-.513 2.876-1.322-.008.035-.039.395-.039.395 0 .378.147.616.298.775.16.168.374.312.688.331a.7783.7783 0 0 0-.012.097zm.997.073c.729.131 1.733.305 1.792.305h.157c.059 0 1.789-.303 1.789-.303-.327.705-1.041 1.194-1.869 1.194-.829 0-1.543-.49-1.869-1.196zm-.971-1.379c.246-1.313 1.462-2.259 2.918-2.259 1.324 0 2.521.97 2.763 2.259v.105c0 .082-.029.115-.103.106l-2.658.473h-.157l-2.66-.476c-.075.01-.103-.023-.103-.105Zm8.023-6.392c.255-.14.549-.22.861-.22.992 0 1.798.804 1.798 1.798v1.919c0 .991-.804 1.797-1.798 1.797-.991 0-1.797-.803-1.797-1.797v-1.542c.034.003.068.005.103.005.64 0 1.16-.518 1.16-1.156 0-.312-.125-.596-.327-.804zM5.162 9.461c.227-.104.48-.162.746-.162.991 0 1.798.804 1.798 1.798v1.919c0 .991-.804 1.797-1.798 1.797-.991 0-1.797-.803-1.797-1.797v-1.571c.089.022.182.034.278.034.641 0 1.16-.518 1.16-1.156 0-.342-.149-.65-.387-.862ZM.002 6.554V4.568C.002 2.044 2.045 0 4.569 0h14.865c2.522 0 4.565 2.044 4.565 4.568v2.041a5.1847 5.1847 0 0 0-.164-.197 4.8592 4.8592 0 0 0-.646-2.284c-.433-.754-1.315-1.037-2.07-.786a4.785 4.785 0 0 0-.327-.774h-.001c-.287-.54-.758-.835-1.248-.908-.493-.073-1.033.072-1.464.515l-3.82 3.864c-1.226 1.11-3.127 1.199-4.313.205-.103-.109-4.025-4.071-4.025-4.071-.427-.438-.966-.584-1.46-.51-.489.073-.961.367-1.248.907v.002c-.133.25-.241.508-.327.771-.753-.252-1.635.029-2.071.782 0 0-.001.001-.001.002-.4.694-.613 1.459-.645 2.23-.057.065-.113.13-.167.197z", "letters": "", "plans": ["Super", "Max"]},
+  {"id": "pedidosya", "name": "PedidosYa Plus", "color": "#FA0050", "icon": "", "letters": "Py", "plans": ["Plus"]}
+];
+
+// Los planes son los habituales de cada servicio; si el tuyo no está, se elige "Otro plan".
+function serviceById(id){ return SERVICES.find(sv => sv.id === id) || null; }
+
+function monthlyCost(i){
+  if(!i.amount) return 0;
+  if(i.repeat === "yearly") return i.amount / 12;
+  if(i.repeat === "weekly") return i.amount * 52 / 12;
+  return i.amount;
+}
+function unitOf(i){ return i.repeat === "yearly" ? "/año" : i.repeat === "weekly" ? "/semana" : "/mes"; }
+
 function currentMonthKey(){ return todayStr().slice(0, 7); }
 function previousMonthKey(){
   const n = new Date();
   const d = new Date(n.getFullYear(), n.getMonth() - 1, 1);
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
 }
+function daysBetween(fromStr, toStr){
+  return Math.round((new Date(toStr + "T00:00:00") - new Date(fromStr + "T00:00:00")) / 86400000);
+}
+function isPriceStale(i){
+  return !!(i.priceChecked && i.amount && daysBetween(i.priceChecked, todayStr()) >= 90);
+}
 
+function hashColor(text){
+  let h = 0;
+  for(let k = 0; k < text.length; k++) h = (h * 31 + text.charCodeAt(k)) % 360;
+  return "hsl(" + h + " 45% 40%)";
+}
+
+// Ícono de una suscripción: del catálogo si lo tiene; si no, la inicial con un color propio
+function iconHtml(item, big){
+  const svc = item.service ? serviceById(item.service) : null;
+  const cls = "svcIcon" + (big ? " big" : "");
+  if(svc && svc.icon){
+    return `<div class="${cls}" style="background:${svc.color};"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${svc.icon}"/></svg></div>`;
+  }
+  if(svc){
+    return `<div class="${cls}" style="background:${svc.color};">${escapeHtml(svc.letters)}</div>`;
+  }
+  const letter = (item.title || "?").trim().charAt(0).toUpperCase() || "?";
+  return `<div class="${cls}" style="background:${hashColor(item.title || "?")};">${escapeHtml(letter)}</div>`;
+}
+
+// Precios que ya cargaste para cada plan (para no escribirlos de nuevo)
+let svcPrices = {};
+try { svcPrices = JSON.parse(localStorage.getItem("agenda_svcprices_v1")) || {}; } catch(e) { svcPrices = {}; }
+function saveSvcPrices(){ localStorage.setItem("agenda_svcprices_v1", JSON.stringify(svcPrices)); }
+
+// --- Pantalla de suscripciones ---
 function renderSubs(){
   const box = document.getElementById("subsList");
+  const summary = document.getElementById("subsSummary");
   const subs = items.filter(i => i.type === "subscription");
+
   if(subs.length === 0){
-    box.innerHTML = `<div class="empty-msg">Cuando cargues suscripciones, vas a poder marcar cada mes si las usaste.</div>`;
+    summary.innerHTML = `<span>Todavía no cargaste ninguna.</span>`;
+    box.innerHTML = `<div class="empty-msg" style="grid-column:1/-1;">Agregá tus suscripciones para ver cuánto gastás por mes, cuándo cobran y si las estás usando.</div>`;
     return;
   }
+
+  const monthly = subs.reduce((t,i)=> t + monthlyCost(i), 0);
+  summary.innerHTML = `<strong>${escapeHtml(fmtMoney(Math.round(monthly)))}</strong> <span>por mes · ${escapeHtml(fmtMoney(Math.round(monthly * 12)))} por año · ${subs.length} ${subs.length === 1 ? "suscripción" : "suscripciones"}</span>`;
+
   const cur = currentMonthKey(), prev = previousMonthKey();
-  box.innerHTML = subs.map(i => {
+  const sorted = [...subs].sort((a,b)=> a.date.localeCompare(b.date));
+
+  box.innerHTML = sorted.map(i => {
     const usage = i.usage || {};
     const used = usage[cur];
-    const cost = i.amount ? `${fmtMoney(i.amount)}/mes · ${fmtMoney(i.amount * 12)}/año` : "Sin monto cargado";
+    const left = daysBetween(todayStr(), i.date);
+    let cobro;
+    if(left < 0) cobro = "La fecha de cobro ya pasó. Tocá para actualizarla";
+    else if(left === 0) cobro = "Cobra hoy";
+    else if(left === 1) cobro = "Cobra mañana";
+    else cobro = "Cobra el " + fmtDate(i.date) + " · en " + left + " días";
+
     let alertHtml = "";
     if(used === false && usage[prev] === false){
-      alertHtml = `<div class="pace bad">Dos meses seguidos sin usarla.${i.amount ? " Cancelarla te ahorraría " + fmtMoney(i.amount * 12) + " al año." : " Pensá si te conviene cancelarla."}</div>`;
+      alertHtml = `<div class="pace bad">Dos meses seguidos sin usarla.${i.amount ? " Cancelarla te ahorraría " + escapeHtml(fmtMoney(Math.round(monthly === 0 ? 0 : monthlyCost(i) * 12))) + " al año." : ""}</div>`;
     } else if(used === undefined && usage[prev] === false){
       alertHtml = `<div class="pace warn">El mes pasado no la usaste.</div>`;
     }
+    if(isPriceStale(i)){
+      alertHtml += `<div class="pace warn">Hace más de 3 meses que no confirmás el precio. ¿Sigue en ${escapeHtml(fmtMoney(i.amount))}?
+        <span class="usageRow" style="display:inline-flex;margin:0 0 0 6px;">
+          <button type="button" class="usageBtn" data-act="same" data-id="${escapeHtml(i.id)}">Sigue igual</button>
+          <button type="button" class="usageBtn" data-act="edit" data-id="${escapeHtml(i.id)}">Cambió</button>
+        </span></div>`;
+    }
+
+    const price = i.amount
+      ? `${escapeHtml(fmtMoney(i.amount))}<small>${unitOf(i)}</small>`
+      : `<small>Sin precio</small>`;
+
     return `
-      <div class="subCard">
-        <div class="name">${escapeHtml(i.title)}</div>
-        <div class="cost">${escapeHtml(cost)}</div>
-        <div class="usageRow">
-          <button type="button" class="usageBtn${used === true ? " sel-yes" : ""}" data-id="${escapeHtml(i.id)}" data-v="yes">La usé este mes</button>
-          <button type="button" class="usageBtn${used === false ? " sel-no" : ""}" data-id="${escapeHtml(i.id)}" data-v="no">No la usé</button>
+      <div class="subCard" data-open="${escapeHtml(i.id)}">
+        <div class="subTop">
+          ${iconHtml(i, false)}
+          <div class="subInfo">
+            <div class="name">${escapeHtml(i.title)}</div>
+            <div class="plan">${i.plan ? escapeHtml(i.plan) : "Plan sin definir"}</div>
+          </div>
+          <div class="subPrice">${price}</div>
         </div>
+        <div class="cost">${escapeHtml(cobro)}</div>
         ${alertHtml}
+        <div class="usageRow">
+          <button type="button" class="usageBtn${used === true ? " sel-yes" : ""}" data-act="yes" data-id="${escapeHtml(i.id)}">La usé este mes</button>
+          <button type="button" class="usageBtn${used === false ? " sel-no" : ""}" data-act="no" data-id="${escapeHtml(i.id)}">No la usé</button>
+        </div>
       </div>`;
   }).join("");
 
+  box.querySelectorAll(".subCard").forEach(card=>{
+    card.addEventListener("click", ()=> openSubModal(card.dataset.open));
+  });
   box.querySelectorAll(".usageBtn").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
+    btn.addEventListener("click", (ev)=>{
+      ev.stopPropagation();
       const item = items.find(x => x.id === btn.dataset.id);
       if(!item) return;
-      if(!item.usage) item.usage = {};
-      item.usage[currentMonthKey()] = btn.dataset.v === "yes";
+      const act = btn.dataset.act;
+      if(act === "edit"){ openSubModal(item.id); return; }
+      if(act === "same"){ item.priceChecked = todayStr(); }
+      else {
+        if(!item.usage) item.usage = {};
+        item.usage[currentMonthKey()] = act === "yes";
+      }
       save();
       renderSubs();
       renderHome();
@@ -1614,24 +1821,215 @@ function renderSubs(){
   });
 }
 
-// Aviso en Inicio durante la última semana del mes
+// --- Ventana para agregar o editar ---
+const subOverlay = document.getElementById("subOverlay");
+let subState = { editingId: null, svcId: null, plan: "", customPlan: false, priceTouched: false };
+
+function openSubModal(id){
+  subState = { editingId: id || null, svcId: null, plan: "", customPlan: false, priceTouched: false };
+  document.getElementById("subMsg").textContent = "";
+  if(id){
+    const item = items.find(x => x.id === id);
+    if(!item) return;
+    subState.svcId = item.service && serviceById(item.service) ? item.service : "custom";
+    showSubForm(item);
+  } else {
+    showSubPick();
+  }
+  subOverlay.classList.add("open");
+}
+function closeSubModal(){ subOverlay.classList.remove("open"); }
+
+function showSubPick(){
+  document.getElementById("subModalTitle").textContent = "Agregar suscripción";
+  document.getElementById("subStepPick").style.display = "";
+  document.getElementById("subStepForm").style.display = "none";
+  const tiles = SERVICES.map(sv => `
+    <button type="button" class="svcTile" data-svc="${sv.id}">
+      ${iconHtml({ service: sv.id, title: sv.name }, false)}
+      <span>${escapeHtml(sv.name)}</span>
+    </button>`).join("") + `
+    <button type="button" class="svcTile" data-svc="custom">
+      <div class="svcIcon" style="background:#3a4152;font-size:22px;">+</div>
+      <span>Otra</span>
+    </button>`;
+  const grid = document.getElementById("svcGrid");
+  grid.innerHTML = tiles;
+  grid.querySelectorAll(".svcTile").forEach(t=>{
+    t.addEventListener("click", ()=>{
+      subState.svcId = t.dataset.svc;
+      showSubForm(null);
+    });
+  });
+}
+
+function planKey(svcId, plan){ return svcId + "|" + plan; }
+
+function renderPlanChips(){
+  const svc = subState.svcId !== "custom" ? serviceById(subState.svcId) : null;
+  const plans = svc ? svc.plans : [];
+  const chips = document.getElementById("planChips");
+  chips.innerHTML = plans.map(p => {
+    const saved = svc ? svcPrices[planKey(svc.id, p)] : null;
+    const sel = !subState.customPlan && subState.plan === p;
+    return `<button type="button" class="chip${sel ? " sel" : ""}" data-plan="${escapeHtml(p)}">${escapeHtml(p)}${saved ? `<small>${escapeHtml(fmtMoney(saved))}</small>` : ""}</button>`;
+  }).join("") + `<button type="button" class="chip${subState.customPlan ? " sel" : ""}" data-plan="__custom">Otro plan</button>`;
+  document.getElementById("subPlanCustom").style.display = subState.customPlan ? "" : "none";
+
+  chips.querySelectorAll(".chip").forEach(c=>{
+    c.addEventListener("click", ()=>{
+      if(c.dataset.plan === "__custom"){
+        subState.customPlan = true;
+        subState.plan = "";
+      } else {
+        subState.customPlan = false;
+        subState.plan = c.dataset.plan;
+        const remembered = svc ? svcPrices[planKey(svc.id, subState.plan)] : null;
+        if(remembered && !subState.priceTouched) document.getElementById("subPrice").value = remembered;
+      }
+      renderPlanChips();
+    });
+  });
+}
+
+function showSubForm(item){
+  const editing = !!item;
+  const svc = subState.svcId !== "custom" ? serviceById(subState.svcId) : null;
+  document.getElementById("subModalTitle").textContent = editing ? "Editar suscripción" : "Agregar suscripción";
+  document.getElementById("subStepPick").style.display = "none";
+  document.getElementById("subStepForm").style.display = "";
+
+  const headerItem = editing ? item : { service: svc ? svc.id : "", title: svc ? svc.name : "Nueva" };
+  const headerName = svc ? svc.name : (editing ? item.title : "Otra suscripción");
+  document.getElementById("svcHeader").innerHTML = `${iconHtml(headerItem, true)}<div class="nm">${escapeHtml(headerName)}</div>`;
+
+  document.getElementById("subNameField").style.display = svc ? "none" : "";
+  document.getElementById("subName").value = editing && !svc ? item.title : "";
+
+  if(editing && item.plan){
+    const known = svc && svc.plans.includes(item.plan);
+    subState.plan = known ? item.plan : "";
+    subState.customPlan = !known;
+    document.getElementById("subPlanCustom").value = known ? "" : item.plan;
+  } else {
+    document.getElementById("subPlanCustom").value = "";
+    subState.customPlan = !svc || svc.plans.length === 0;
+  }
+  renderPlanChips();
+
+  document.getElementById("subPrice").value = editing && item.amount ? item.amount : "";
+  document.getElementById("subRepeat").value = editing && item.repeat === "yearly" ? "yearly" : "monthly";
+  document.getElementById("subDate").value = editing ? item.date : todayStr();
+  document.getElementById("subMsg").textContent = "";
+
+  document.getElementById("subDelete").style.display = editing ? "" : "none";
+  document.getElementById("subBack").style.display = editing ? "none" : "";
+  renderSubHistory(editing ? item : null);
+}
+
+function renderSubHistory(item){
+  const box = document.getElementById("subHistory");
+  const h = item && item.priceHistory ? item.priceHistory : [];
+  if(h.length === 0){ box.innerHTML = ""; return; }
+  let change = "";
+  if(h.length >= 2){
+    const a = h[h.length - 2], b = h[h.length - 1];
+    const pct = Math.round((b.amount - a.amount) / a.amount * 100);
+    if(pct !== 0){
+      change = `<div class="change">${pct > 0 ? "Subió" : "Bajó"} ${Math.abs(pct)}% (de ${escapeHtml(fmtMoney(a.amount))} a ${escapeHtml(fmtMoney(b.amount))}${b.date ? " el " + escapeHtml(fmtDate(b.date)) : ""})</div>`;
+    }
+  }
+  box.innerHTML = `<label>Historial de precios</label>${change}` +
+    [...h].reverse().slice(0, 6).map(e =>
+      `<div class="row"><span>${escapeHtml(fmtMoney(e.amount))}</span><span>${e.date ? escapeHtml(fmtDate(e.date)) : "antes"}</span></div>`).join("");
+}
+
+document.getElementById("subPrice").addEventListener("input", ()=>{ subState.priceTouched = true; });
+
+function saveSub(){
+  const msg = document.getElementById("subMsg");
+  const svc = subState.svcId !== "custom" ? serviceById(subState.svcId) : null;
+  const title = svc ? svc.name : document.getElementById("subName").value.trim();
+  const price = parseFloat(document.getElementById("subPrice").value);
+  const date = document.getElementById("subDate").value;
+  const repeat = document.getElementById("subRepeat").value;
+  const plan = subState.customPlan ? document.getElementById("subPlanCustom").value.trim() : subState.plan;
+
+  if(!title){ msg.textContent = "Poné el nombre de la suscripción."; return; }
+  if(!price || price <= 0){ msg.textContent = "Poné cuánto te cobran."; return; }
+  if(!date){ msg.textContent = "Poné la fecha del próximo cobro."; return; }
+
+  if(subState.editingId){
+    const item = items.find(x => x.id === subState.editingId);
+    if(!item) { closeSubModal(); return; }
+    if(!item.priceHistory) item.priceHistory = item.amount ? [{ date: null, amount: item.amount }] : [];
+    if(item.amount !== price){
+      item.priceHistory.push({ date: todayStr(), amount: price });
+      item.priceChecked = todayStr();
+    }
+    item.title = title;
+    item.amount = price;
+    item.plan = plan;
+    item.repeat = repeat;
+    item.date = date;
+    if(svc) item.service = svc.id;
+  } else {
+    items.push({
+      id: Date.now().toString(), title, type: "subscription", date, notes: "", repeat,
+      amount: price, plan, service: svc ? svc.id : "",
+      priceHistory: [{ date: todayStr(), amount: price }], priceChecked: todayStr()
+    });
+  }
+  if(svc && plan){ svcPrices[planKey(svc.id, plan)] = price; saveSvcPrices(); }
+  save();
+  closeSubModal();
+  render();
+}
+
+document.getElementById("subSave").addEventListener("click", saveSub);
+document.getElementById("subBack").addEventListener("click", showSubPick);
+document.getElementById("subModalClose").addEventListener("click", closeSubModal);
+document.getElementById("addSubBtn").addEventListener("click", ()=> openSubModal(null));
+subOverlay.addEventListener("click", (e)=>{ if(e.target === subOverlay) closeSubModal(); });
+document.getElementById("subDelete").addEventListener("click", ()=>{
+  if(!subState.editingId) return;
+  if(!confirm("¿Quitar esta suscripción?")) return;
+  items = items.filter(x => x.id !== subState.editingId);
+  save();
+  closeSubModal();
+  render();
+});
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeSubModal(); });
+
+// --- Avisos en Inicio: chequeo de fin de mes y precios sin confirmar ---
 function renderSubsCheck(){
   const box = document.getElementById("subsCheck");
   const now = new Date();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const pending = items.filter(i => i.type === "subscription" && (!i.usage || i.usage[currentMonthKey()] === undefined));
-  if(now.getDate() < daysInMonth - 6 || pending.length === 0){
-    box.innerHTML = "";
-    return;
+  const subs = items.filter(i => i.type === "subscription");
+  const pendingUse = subs.filter(i => !i.usage || i.usage[currentMonthKey()] === undefined);
+  const stale = subs.filter(isPriceStale);
+  let html = "";
+
+  if(now.getDate() >= daysInMonth - 6 && pendingUse.length > 0){
+    html += `
+      <div class="memoryCard" style="--c-memory:var(--c-subscription);">
+        <div class="when">Chequeo del mes</div>
+        <div class="text">Tenés ${pendingUse.length} ${pendingUse.length === 1 ? "suscripción" : "suscripciones"} sin revisar este mes. ¿Las usaste?</div>
+        <div class="cta"><button type="button" class="goSubsBtn">Revisar suscripciones</button></div>
+      </div>`;
   }
-  box.innerHTML = `
-    <div class="memoryCard" style="--c-memory:var(--c-subscription);">
-      <div class="when">Chequeo del mes</div>
-      <div class="text">Tenés ${pending.length} ${pending.length === 1 ? "suscripción" : "suscripciones"} sin revisar este mes. ¿Las usaste?</div>
-      <div class="cta"><button type="button" id="goSubsBtn">Revisar suscripciones</button></div>
-    </div>`;
-  document.getElementById("goSubsBtn").addEventListener("click", ()=>{
-    document.querySelector('[data-view="view-stats"]').click();
+  if(stale.length > 0){
+    html += `
+      <div class="memoryCard" style="--c-memory:var(--c-subscription);">
+        <div class="when">Precios sin confirmar</div>
+        <div class="text">Hace más de 3 meses que no confirmás el precio de: ${stale.map(i => escapeHtml(i.title)).join(", ")}. Los precios suben seguido: revisalos.</div>
+        <div class="cta"><button type="button" class="goSubsBtn">Revisar precios</button></div>
+      </div>`;
+  }
+  box.innerHTML = html;
+  box.querySelectorAll(".goSubsBtn").forEach(b=>{
+    b.addEventListener("click", ()=> document.querySelector('[data-view="view-subs"]').click());
   });
 }
 
@@ -2073,6 +2471,13 @@ const CHANGELOG = [
       "Metas con fecha límite: te decimos cuánto juntar por semana y si vas al día o atrasado. Podés ponerle fecha a una meta que ya tenías.",
       "Suscripciones: marcá cada mes si las usaste. Si pasan dos meses sin uso, te sugerimos cancelarlas y cuánto ahorrarías al año.",
       "En Inicio aparece el chequeo de suscripciones durante la última semana del mes."
+  ]},
+  { id: "2026-10-06-suscripciones", items: [
+      "Nueva pestaña Suscripciones, con el ícono de cada app, su plan, el precio y la fecha del próximo cobro.",
+      "Para agregar una, elegís la app, el plan y cargás lo que te cobran. Los precios que cargues se recuerdan para la próxima vez.",
+      "Historial de precios: te mostramos cuánto subió cada suscripción cuando cambiás el monto.",
+      "Aviso cuando pasan más de 3 meses sin confirmar un precio.",
+      "Las suscripciones anuales se cuentan bien en el gasto mensual."
   ]}
 ];
 const CHANGELOG_SEEN_KEY = "agenda_changelog_seen_v1";
