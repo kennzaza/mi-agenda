@@ -309,6 +309,28 @@
   #visualGroups h2{margin-top:20px;}
   .backupRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
 
+  /* ---------- Plan de deudas, suscripciones y ritmo de metas ---------- */
+  .pace{font-size:12px;margin-top:7px;color:var(--muted);}
+  .pace.ok{color:var(--c-trial);}
+  .pace.warn{color:var(--c-subscription);}
+  .pace.bad{color:var(--c-debt);}
+  .planCard{background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+  .planRow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+  .planRow > div{display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .planSummary{font-size:15px;margin-bottom:10px;}
+  .planSummary strong{color:var(--accent);}
+  .planStep{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid var(--border);font-size:13px;}
+  .planStep .n{color:var(--muted);width:20px;flex-shrink:0;}
+  .planStep .when{margin-left:auto;color:var(--c-trial);white-space:nowrap;}
+  .hint{font-size:12px;color:var(--muted);margin-top:10px;}
+  .subCard{background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--c-subscription);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+  .subCard .name{font-size:15px;font-weight:600;overflow-wrap:anywhere;}
+  .subCard .cost{font-size:12px;color:var(--muted);margin-top:2px;}
+  .usageRow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .usageBtn{padding:7px 14px;font-size:12px;border-radius:20px;}
+  .usageBtn.sel-yes{background:color-mix(in srgb,var(--c-trial) 22%,transparent);border-color:var(--c-trial);}
+  .usageBtn.sel-no{background:color-mix(in srgb,var(--c-debt) 22%,transparent);border-color:var(--c-debt);}
+
   /* ---------- Botón flotante (solo celular) ---------- */
   #fabBtn{display:none;}
 
@@ -329,6 +351,7 @@
     .hero{grid-template-columns:1fr;}
     .summaryGrid{grid-template-columns:1fr;}
     .heroGreeting{font-size:22px;}
+    .planRow{grid-template-columns:1fr;}
     .day{min-height:56px;padding:5px;}
     #fabBtn{
       display:grid;place-items:center;position:fixed;right:16px;bottom:calc(78px + env(safe-area-inset-bottom,0px));
@@ -394,6 +417,7 @@
     </div>
 
     <div id="summaryTrialWarn"></div>
+    <div id="subsCheck"></div>
     <div id="memoryCards"></div>
 
     <div class="weekCard">
@@ -443,6 +467,25 @@
       <div style="font-size:11px;color:var(--muted);">Deuda total pendiente</div>
       <div id="debtsTotalAmount">$0</div>
     </div>
+    <div class="planCard" id="debtPlan">
+      <h2>Plan de pago</h2>
+      <div class="planRow">
+        <div>
+          <label for="planMonthly">¿Cuánto podés pagar por mes?</label>
+          <input id="planMonthly" type="number" min="0" step="100" placeholder="Ej: 30000">
+        </div>
+        <div>
+          <label for="planStrategy">Empezar por</label>
+          <select id="planStrategy">
+            <option value="small">La deuda más chica</option>
+            <option value="big">La deuda más grande</option>
+          </select>
+        </div>
+      </div>
+      <div id="planResult"></div>
+      <div class="hint">El cálculo no incluye intereses: es una guía para ordenarte, no un cálculo del banco.</div>
+    </div>
+
     <div id="debtsList"></div>
   </div>
 
@@ -458,6 +501,8 @@
       <input id="goalTitle" type="text" placeholder="Ej: Viaje, PC nueva, fondo de emergencia" required>
       <label>Monto objetivo</label>
       <input id="goalTarget" type="number" min="0" step="0.01" placeholder="Ej: 300000" required>
+      <label>Fecha límite (opcional)</label>
+      <input id="goalDeadline" type="date">
       <button type="submit">Crear meta</button>
     </form>
 
@@ -482,6 +527,9 @@
       <div class="value" id="statStreak">0 días seguidos</div>
       <div class="sub">Contando hacia atrás desde hoy</div>
     </div>
+
+    <h2 style="margin-top:24px;">Tus suscripciones</h2>
+    <div id="subsList"></div>
   </div>
 
   <div class="view" id="view-movies">
@@ -697,6 +745,8 @@
     <div id="goalContribSub" class="sub"></div>
     <label>Monto que juntaste</label>
     <input id="goalContribAmount" type="number" min="0" step="0.01" placeholder="Ej: 10000">
+    <label style="display:block;margin-top:10px;">Fecha límite de la meta (opcional)</label>
+    <input id="goalContribDeadline" type="date">
     <div class="modalActions">
       <button id="goalContribDelete" type="button" style="margin-right:auto;background:transparent;border:1px solid var(--border);color:#c77;">Borrar meta</button>
       <button id="goalContribCancel" type="button">Cancelar</button>
@@ -977,6 +1027,7 @@ function renderDebts(){
   });
 
   document.getElementById("debtsTotalAmount").textContent = fmtMoney(totalPending);
+  renderDebtPlan();
 
   container.querySelectorAll(".actionBtn").forEach(btn=>{
     btn.addEventListener("click", ()=> openPayModal(btn.dataset.id));
@@ -1021,11 +1072,15 @@ document.getElementById("newGoalForm").addEventListener("submit", (e)=>{
   const title = document.getElementById("goalTitle").value.trim();
   const target = parseFloat(document.getElementById("goalTarget").value);
   if(!title || !target || target <= 0) return;
-  goals.push({ id: Date.now().toString(), title, target, contributions: [] });
+  const deadline = document.getElementById("goalDeadline").value;
+  const newGoal = { id: Date.now().toString(), title, target, contributions: [] };
+  if(deadline){ newGoal.deadline = deadline; newGoal.createdAt = todayStr(); newGoal.baseSaved = 0; }
+  goals.push(newGoal);
   saveGoals();
   document.getElementById("newGoalForm").reset();
   renderGoals();
   renderSummary();
+  renderHome();
 });
 
 function renderGoals(){
@@ -1046,6 +1101,7 @@ function renderGoals(){
     const pct = target > 0 ? Math.min((saved/target)*100, 100) : 0;
     const reached = saved >= target && target > 0;
 
+    const pace = goalPace(g);
     const card = document.createElement("div");
     card.className = "progressCard goal" + (reached ? " doneOff" : "");
     card.innerHTML = `
@@ -1054,6 +1110,7 @@ function renderGoals(){
         <button class="actionBtn" data-id="${g.id}" type="button">+ Aporte</button>
       </div>
       <div class="nums">Objetivo ${fmtMoney(target)} · Ahorrado ${fmtMoney(saved)} · Falta ${fmtMoney(remaining)}</div>
+      ${pace ? `<div class="pace ${pace.cls}">${pace.text}</div>` : ""}
       <div class="barBg"><div class="barFill" style="width:${pct}%;"></div></div>
       ${(g.contributions && g.contributions.length) ? `<div class="payHistory">` +
         g.contributions.map(c => `<div>· ${fmtMoney(c.amount)} el ${fmtDate(c.date)}</div>`).join("") +
@@ -1077,6 +1134,7 @@ function openGoalContribModal(goalId){
   const goal = goals.find(g => g.id === goalId);
   document.getElementById("goalContribSub").textContent = goal ? goal.title : "";
   document.getElementById("goalContribAmount").value = "";
+  document.getElementById("goalContribDeadline").value = (goal && goal.deadline) || "";
   goalContribOverlay.classList.add("open");
   document.getElementById("goalContribAmount").focus();
 }
@@ -1086,16 +1144,28 @@ function closeGoalContribModal(){
 }
 document.getElementById("goalContribCancel").addEventListener("click", closeGoalContribModal);
 document.getElementById("goalContribConfirm").addEventListener("click", ()=>{
-  const amountVal = parseFloat(document.getElementById("goalContribAmount").value);
-  if(!amountVal || amountVal <= 0) return;
   const goal = goals.find(g => g.id === currentGoalId);
   if(!goal) return;
-  if(!goal.contributions) goal.contributions = [];
-  goal.contributions.push({ amount: amountVal, date: todayStr() });
+  const amountVal = parseFloat(document.getElementById("goalContribAmount").value);
+  if(amountVal && amountVal > 0){
+    if(!goal.contributions) goal.contributions = [];
+    goal.contributions.push({ amount: amountVal, date: todayStr() });
+  }
+  const dl = document.getElementById("goalContribDeadline").value;
+  if(dl){
+    if(!goal.createdAt){
+      goal.createdAt = todayStr();
+      goal.baseSaved = (goal.contributions || []).reduce((t,c)=> t + c.amount, 0) - (amountVal > 0 ? amountVal : 0);
+    }
+    goal.deadline = dl;
+  } else {
+    delete goal.deadline;
+  }
   saveGoals();
   closeGoalContribModal();
   renderGoals();
   renderSummary();
+  renderHome();
 });
 document.getElementById("goalContribDelete").addEventListener("click", ()=>{
   goals = goals.filter(g => g.id !== currentGoalId);
@@ -1103,6 +1173,7 @@ document.getElementById("goalContribDelete").addEventListener("click", ()=>{
   closeGoalContribModal();
   renderGoals();
   renderSummary();
+  renderHome();
 });
 goalContribOverlay.addEventListener("click", (e)=>{
   if(e.target === goalContribOverlay) closeGoalContribModal();
@@ -1240,6 +1311,7 @@ function renderStats(){
     }
   }
   document.getElementById("statStreak").textContent = streak + (streak === 1 ? " día seguido" : " días seguidos");
+  renderSubs();
 }
 
 // --- Inicio: saludo, resumen de la semana y recuerdos ---
@@ -1279,12 +1351,14 @@ function renderWeek(){
     return s + Math.max((d.amount || 0) - paid, 0);
   }, 0);
   const trials = upcoming.filter(i => i.type === "trial");
+  const goalsNeeded = goals.reduce((t,g)=>{ const p = goalPace(g); return t + (p && !p.reached ? p.weekly : 0); }, 0);
 
   document.getElementById("weekStats").innerHTML = `
     <div class="weekStat"><div class="label">Eventos en 7 días</div><div class="value">${upcoming.length}</div></div>
     <div class="weekStat"><div class="label">Suscripciones a pagar</div><div class="value">${fmtMoney(subsSum)}</div></div>
     <div class="weekStat"><div class="label">Deudas que vencen</div><div class="value">${debts.length}${debts.length ? ` · ${fmtMoney(debtsLeft)}` : ""}</div></div>
     <div class="weekStat"><div class="label">Pruebas por cancelar</div><div class="value">${trials.length}</div></div>
+    ${goalsNeeded > 0 ? `<div class="weekStat"><div class="label">Para tus metas esta semana</div><div class="value">${fmtMoney(goalsNeeded)}</div></div>` : ""}
   `;
 
   const list = document.getElementById("weekList");
@@ -1348,6 +1422,7 @@ function renderMemories(){
 function renderHome(){
   renderGreeting();
   renderWeek();
+  renderSubsCheck();
   renderMemories();
 }
 
@@ -1367,6 +1442,198 @@ document.getElementById("fabBtn").addEventListener("click", openNewModal);
 document.getElementById("newClose").addEventListener("click", closeNewModal);
 newOverlay.addEventListener("click", (e)=>{ if(e.target === newOverlay) closeNewModal(); });
 document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeNewModal(); });
+
+// --- Metas con ritmo ---
+function goalPace(g){
+  if(!g.deadline) return null;
+  const saved = (g.contributions || []).reduce((t,c)=> t + c.amount, 0);
+  const target = g.target || 0;
+  const remaining = Math.max(target - saved, 0);
+  if(remaining <= 0 && target > 0) return { reached: true, weekly: 0, cls: "ok", text: "¡Meta cumplida!" };
+
+  const today = new Date(todayStr() + "T00:00:00");
+  const end = new Date(g.deadline + "T00:00:00");
+  const daysLeft = Math.round((end - today) / 86400000);
+  if(daysLeft < 0){
+    const n = -daysLeft;
+    return { reached: false, weekly: 0, cls: "bad",
+      text: "La fecha límite venció hace " + n + (n === 1 ? " día" : " días") + ". Te faltan " + fmtMoney(remaining) + "." };
+  }
+
+  const weeks = Math.max(daysLeft / 7, 1);
+  const weekly = Math.ceil(remaining / weeks);
+  let cls = "", status = "";
+  if(g.createdAt){
+    const start = new Date(g.createdAt + "T00:00:00");
+    const total = Math.max(Math.round((end - start) / 86400000), 1);
+    const elapsed = Math.min(Math.max(Math.round((today - start) / 86400000), 0), total);
+    const base = g.baseSaved || 0;
+    const expected = base + (target - base) * elapsed / total;
+    const behind = expected - saved;
+    if(behind > target * 0.01){
+      cls = "warn";
+      status = " · Vas atrasado: te faltan " + fmtMoney(Math.ceil(behind)) + " para ir al día";
+    } else {
+      cls = "ok";
+      status = " · Vas al día";
+    }
+  }
+  const dias = daysLeft === 0 ? "Hoy vence" : "Faltan " + daysLeft + (daysLeft === 1 ? " día" : " días");
+  return { reached: false, weekly, cls, text: dias + " · Necesitás " + fmtMoney(weekly) + " por semana" + status };
+}
+
+// --- Plan para salir de las deudas ---
+let debtPlan = {};
+try { debtPlan = JSON.parse(localStorage.getItem("agenda_debtplan_v1")) || {}; } catch(e) { debtPlan = {}; }
+function saveDebtPlan(){ localStorage.setItem("agenda_debtplan_v1", JSON.stringify(debtPlan)); }
+
+function simulateDebtPlan(list, monthly, strategy){
+  const ds = list.filter(d => d.remaining > 0).map(d => ({ title: d.title, remaining: d.remaining, left: d.remaining, month: null }));
+  ds.sort((a,b)=> strategy === "big" ? b.remaining - a.remaining : a.remaining - b.remaining);
+  let m = 0;
+  while(ds.some(d => d.left > 0) && m < 1200){
+    m++;
+    let budget = monthly;
+    for(const d of ds){
+      if(d.left <= 0) continue;
+      if(budget <= 0) break;
+      const pay = Math.min(budget, d.left);
+      d.left -= pay;
+      budget -= pay;
+      if(d.left <= 0.005){ d.left = 0; d.month = m; }
+    }
+  }
+  return { months: m, order: ds, tooLong: ds.some(d => d.left > 0) };
+}
+
+function monthName(offset){
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + offset - 1, 1);
+  return capitalize(d.toLocaleDateString("es-AR", { month: "long", year: "numeric" }));
+}
+
+function renderDebtPlan(){
+  const monthlyInput = document.getElementById("planMonthly");
+  const strategySel = document.getElementById("planStrategy");
+  if(document.activeElement !== monthlyInput) monthlyInput.value = debtPlan.monthly || "";
+  strategySel.value = debtPlan.strategy === "big" ? "big" : "small";
+
+  const list = items.filter(i => i.type === "debt").map(d => {
+    const paid = (d.payments || []).reduce((t,p)=> t + p.amount, 0);
+    return { title: d.title, remaining: Math.max((d.amount || 0) - paid, 0) };
+  }).filter(d => d.remaining > 0);
+
+  const out = document.getElementById("planResult");
+  if(list.length === 0){
+    out.innerHTML = `<div class="empty-msg">No tenés deudas pendientes con monto cargado.</div>`;
+    return;
+  }
+  const monthly = parseFloat(debtPlan.monthly);
+  if(!monthly || monthly <= 0){
+    out.innerHTML = `<div class="empty-msg">Escribí cuánto podés pagar por mes y te armo el plan.</div>`;
+    return;
+  }
+  const total = list.reduce((t,d)=> t + d.remaining, 0);
+  const sim = simulateDebtPlan(list, monthly, debtPlan.strategy === "big" ? "big" : "small");
+  if(sim.tooLong){
+    out.innerHTML = `<div class="planSummary">Con ${escapeHtml(fmtMoney(monthly))} por mes tardarías más de 100 años. Probá con un monto más alto.</div>`;
+    return;
+  }
+  out.innerHTML = `
+    <div class="planSummary">Pagando <strong>${escapeHtml(fmtMoney(monthly))}</strong> por mes, quedás libre en
+      <strong>${sim.months} ${sim.months === 1 ? "mes" : "meses"}</strong> (${escapeHtml(monthName(sim.months))}).
+      Total pendiente: ${escapeHtml(fmtMoney(total))}.</div>
+    ${sim.order.map((d, i) => `
+      <div class="planStep">
+        <span class="n">${i + 1}.</span>
+        <span>${escapeHtml(d.title)} <span style="color:var(--muted);">(${escapeHtml(fmtMoney(d.remaining))})</span></span>
+        <span class="when">${escapeHtml(monthName(d.month))} · mes ${d.month}</span>
+      </div>`).join("")}
+  `;
+}
+
+document.getElementById("planMonthly").addEventListener("input", ()=>{
+  debtPlan.monthly = parseFloat(document.getElementById("planMonthly").value) || 0;
+  saveDebtPlan();
+  renderDebtPlan();
+});
+document.getElementById("planStrategy").addEventListener("change", ()=>{
+  debtPlan.strategy = document.getElementById("planStrategy").value;
+  saveDebtPlan();
+  renderDebtPlan();
+});
+
+// --- Suscripciones que te cuidan el bolsillo ---
+function currentMonthKey(){ return todayStr().slice(0, 7); }
+function previousMonthKey(){
+  const n = new Date();
+  const d = new Date(n.getFullYear(), n.getMonth() - 1, 1);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+}
+
+function renderSubs(){
+  const box = document.getElementById("subsList");
+  const subs = items.filter(i => i.type === "subscription");
+  if(subs.length === 0){
+    box.innerHTML = `<div class="empty-msg">Cuando cargues suscripciones, vas a poder marcar cada mes si las usaste.</div>`;
+    return;
+  }
+  const cur = currentMonthKey(), prev = previousMonthKey();
+  box.innerHTML = subs.map(i => {
+    const usage = i.usage || {};
+    const used = usage[cur];
+    const cost = i.amount ? `${fmtMoney(i.amount)}/mes · ${fmtMoney(i.amount * 12)}/año` : "Sin monto cargado";
+    let alertHtml = "";
+    if(used === false && usage[prev] === false){
+      alertHtml = `<div class="pace bad">Dos meses seguidos sin usarla.${i.amount ? " Cancelarla te ahorraría " + fmtMoney(i.amount * 12) + " al año." : " Pensá si te conviene cancelarla."}</div>`;
+    } else if(used === undefined && usage[prev] === false){
+      alertHtml = `<div class="pace warn">El mes pasado no la usaste.</div>`;
+    }
+    return `
+      <div class="subCard">
+        <div class="name">${escapeHtml(i.title)}</div>
+        <div class="cost">${escapeHtml(cost)}</div>
+        <div class="usageRow">
+          <button type="button" class="usageBtn${used === true ? " sel-yes" : ""}" data-id="${escapeHtml(i.id)}" data-v="yes">La usé este mes</button>
+          <button type="button" class="usageBtn${used === false ? " sel-no" : ""}" data-id="${escapeHtml(i.id)}" data-v="no">No la usé</button>
+        </div>
+        ${alertHtml}
+      </div>`;
+  }).join("");
+
+  box.querySelectorAll(".usageBtn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const item = items.find(x => x.id === btn.dataset.id);
+      if(!item) return;
+      if(!item.usage) item.usage = {};
+      item.usage[currentMonthKey()] = btn.dataset.v === "yes";
+      save();
+      renderSubs();
+      renderHome();
+    });
+  });
+}
+
+// Aviso en Inicio durante la última semana del mes
+function renderSubsCheck(){
+  const box = document.getElementById("subsCheck");
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const pending = items.filter(i => i.type === "subscription" && (!i.usage || i.usage[currentMonthKey()] === undefined));
+  if(now.getDate() < daysInMonth - 6 || pending.length === 0){
+    box.innerHTML = "";
+    return;
+  }
+  box.innerHTML = `
+    <div class="memoryCard" style="--c-memory:var(--c-subscription);">
+      <div class="when">Chequeo del mes</div>
+      <div class="text">Tenés ${pending.length} ${pending.length === 1 ? "suscripción" : "suscripciones"} sin revisar este mes. ¿Las usaste?</div>
+      <div class="cta"><button type="button" id="goSubsBtn">Revisar suscripciones</button></div>
+    </div>`;
+  document.getElementById("goSubsBtn").addEventListener("click", ()=>{
+    document.querySelector('[data-view="view-stats"]').click();
+  });
+}
 
 rollForwardRecurring();
 render();
@@ -1800,6 +2067,12 @@ const CHANGELOG = [
       "Recuerdos de hace un año y de hace un mes aparecen en Inicio.",
       "Estadísticas muestran también el gasto anual en suscripciones.",
       "Los colores de la pestaña Visual se reiniciaron por el nuevo diseño, y ahora podés elegir un color de acento."
+  ]},
+  { id: "2026-10-05-cuidado-del-bolsillo", items: [
+      "Plan de pago en Deudas: poné cuánto podés pagar por mes y te mostramos en qué fecha quedás libre y en qué orden saldás cada deuda.",
+      "Metas con fecha límite: te decimos cuánto juntar por semana y si vas al día o atrasado. Podés ponerle fecha a una meta que ya tenías.",
+      "Suscripciones: marcá cada mes si las usaste. Si pasan dos meses sin uso, te sugerimos cancelarlas y cuánto ahorrarías al año.",
+      "En Inicio aparece el chequeo de suscripciones durante la última semana del mes."
   ]}
 ];
 const CHANGELOG_SEEN_KEY = "agenda_changelog_seen_v1";
