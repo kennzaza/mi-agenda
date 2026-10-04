@@ -366,6 +366,19 @@
   #subMsg{font-size:12px;color:var(--c-debt);min-height:16px;margin-top:6px;}
   .modalBox.wide{width:540px;}
 
+  /* ---------- ¿Dónde la veo? ---------- */
+  #whereBox{margin-top:16px;padding-top:14px;border-top:1px solid var(--border);}
+  #whereResult{margin-top:10px;font-size:13px;}
+  .whereMine{background:color-mix(in srgb,var(--c-trial) 16%,transparent);border:1px solid color-mix(in srgb,var(--c-trial) 40%,transparent);border-radius:12px;padding:10px 12px;margin-bottom:8px;color:#bff0dc;}
+  .whereGroup{margin-top:8px;}
+  .whereGroup .gl{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:600;margin-bottom:4px;}
+  .whereLinks{display:flex;flex-wrap:wrap;gap:6px;}
+  .whereLinks a,.whereLinks span{padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;text-decoration:none;}
+  .whereLinks a:hover{border-color:var(--accent);}
+  .whereLinks .mine{border-color:var(--c-trial);color:#bff0dc;}
+  .whereNote{font-size:11px;color:var(--muted);margin-top:8px;}
+  .whereErr{color:var(--c-debt);}
+
   /* ---------- Botón flotante (solo celular) ---------- */
   #fabBtn{display:none;}
 
@@ -768,6 +781,11 @@
       </div>
     </div>
     <div id="movieModalOverview" style="font-size:12px;color:var(--muted);margin-top:14px;line-height:1.5;"></div>
+
+    <div id="whereBox">
+      <button type="button" id="whereBtn">¿Dónde la veo?</button>
+      <div id="whereResult"></div>
+    </div>
     <div class="modalActions">
       <button id="movieModalDelete" type="button" style="margin-right:auto;background:transparent;border:1px solid var(--border);color:#c77;">Quitar del ranking</button>
       <button id="movieModalClose" type="button">Cerrar</button>
@@ -2033,6 +2051,120 @@ function renderSubsCheck(){
   });
 }
 
+// --- ¿Dónde la veo? (Watchmode, a través de tu servidor intermedio) ---
+// Pegá acá la dirección de tu servidor de Watchmode, por ejemplo:
+// const WATCH_ENDPOINT = "https://agenda-watch.tuusuario.workers.dev";
+const WATCH_ENDPOINT = "";
+const WATCH_REGION = "AR";
+
+let whereCache = {};
+try { whereCache = JSON.parse(localStorage.getItem("agenda_where_v1")) || {}; } catch(e) { whereCache = {}; }
+function saveWhereCache(){ localStorage.setItem("agenda_where_v1", JSON.stringify(whereCache)); }
+
+function normName(text){ return String(text || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
+
+// Nombres con los que Watchmode puede llamar a cada servicio de tu catálogo
+const SERVICE_ALIASES = {
+  netflix: ["Netflix"],
+  disney: ["Disney+", "Disney Plus"],
+  hbomax: ["HBO Max", "Max"],
+  prime: ["Amazon Prime", "Amazon Prime Video", "Prime Video"],
+  paramount: ["Paramount+", "Paramount Plus"],
+  crunchyroll: ["Crunchyroll"],
+  youtube: ["YouTube Premium"],
+  appletv: ["Apple TV+", "Apple TV Plus", "Apple TV"],
+  applemusic: ["Apple Music"],
+  spotify: ["Spotify"]
+};
+
+// ¿Ya pagás esta plataforma? Busca entre tus suscripciones.
+function findMySubscription(sourceName){
+  const n = normName(sourceName);
+  return items.find(i => {
+    if(i.type !== "subscription") return false;
+    if(normName(i.title) === n) return true;
+    const aliases = (i.service && SERVICE_ALIASES[i.service]) || [];
+    return aliases.some(a => normName(a) === n);
+  }) || null;
+}
+
+function whereKey(k){ return k.mediaType + "-" + k.id; }
+
+function renderWhere(){
+  const box = document.getElementById("whereResult");
+  const btn = document.getElementById("whereBtn");
+  if(!currentMovieKey){ box.innerHTML = ""; return; }
+  const saved = whereCache[whereKey(currentMovieKey)];
+  btn.disabled = false;
+  btn.textContent = saved ? "Actualizar" : "¿Dónde la veo?";
+  if(!saved){ box.innerHTML = ""; return; }
+
+  const subs = saved.sources.filter(x => x.type === "sub");
+  const free = saved.sources.filter(x => x.type === "free");
+  const buy = saved.sources.filter(x => x.type === "purchase");
+  const mine = subs.filter(x => findMySubscription(x.name));
+
+  const chip = (x, extraClass) => {
+    const cls = extraClass ? ` class="${extraClass}"` : "";
+    return x.url
+      ? `<a${cls} href="${escapeHtml(x.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(x.name)}</a>`
+      : `<span${cls}>${escapeHtml(x.name)}</span>`;
+  };
+  const group = (label, list, mineSet) => list.length === 0 ? "" : `
+    <div class="whereGroup"><div class="gl">${label}</div>
+      <div class="whereLinks">${list.map(x => chip(x, mineSet && findMySubscription(x.name) ? "mine" : "")).join("")}</div>
+    </div>`;
+
+  let html = "";
+  if(!saved.found || saved.sources.length === 0){
+    html = `<div class="empty-msg">No encontramos dónde verla en ${escapeHtml(WATCH_REGION)}. Puede que todavía no esté cargada.</div>`;
+  } else {
+    if(mine.length > 0){
+      html += `<div class="whereMine">✓ La tenés en ${mine.map(x => escapeHtml(x.name)).join(", ")}: ya la estás pagando.</div>`;
+    } else if(subs.length > 0){
+      html += `<div class="empty-msg" style="padding:0 0 4px;">No está en ninguna de tus suscripciones.</div>`;
+    } else {
+      html += `<div class="empty-msg" style="padding:0 0 4px;">No está en ninguna suscripción: solo gratis o por alquiler o compra.</div>`;
+    }
+    html += group("Con suscripción", subs, true) + group("Gratis", free, false) + group("Alquiler o compra", buy, false);
+  }
+  html += `<div class="whereNote">Consultado el ${escapeHtml(fmtDate(saved.at))} · Datos de Watchmode. Puede haber cambios.</div>`;
+  box.innerHTML = html;
+}
+
+async function fetchWhere(){
+  const k = currentMovieKey;
+  if(!k) return;
+  const box = document.getElementById("whereResult");
+  const btn = document.getElementById("whereBtn");
+  if(!WATCH_ENDPOINT){
+    box.innerHTML = `<div class="whereErr">Falta configurar la dirección del servidor (WATCH_ENDPOINT).</div>`;
+    return;
+  }
+  btn.disabled = true;
+  box.innerHTML = `<div class="empty-msg">Buscando...</div>`;
+  try{
+    const res = await fetch(WATCH_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tmdbId: k.id, mediaType: k.mediaType, region: WATCH_REGION })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || "Error del servidor");
+    whereCache[whereKey(k)] = { at: todayStr(), found: !!data.found, sources: Array.isArray(data.sources) ? data.sources : [] };
+    saveWhereCache();
+    if(currentMovieKey && whereKey(currentMovieKey) === whereKey(k)) renderWhere();
+  }catch(err){
+    if(currentMovieKey && whereKey(currentMovieKey) === whereKey(k)){
+      renderWhere();
+      box.innerHTML = `<div class="whereErr">No se pudo consultar: ${escapeHtml(err.message)}</div>` + box.innerHTML;
+    }
+  }finally{
+    btn.disabled = false;
+  }
+}
+document.getElementById("whereBtn").addEventListener("click", fetchWhere);
+
 rollForwardRecurring();
 render();
 
@@ -2212,6 +2344,7 @@ function openMovieModal(id, mediaType){
     (m.overview ? m.overview : "Sin sinopsis disponible.");
 
   movieModalOverlay.classList.add("open");
+  renderWhere();
 }
 
 function updateStarButtons(rating){
@@ -2478,6 +2611,10 @@ const CHANGELOG = [
       "Historial de precios: te mostramos cuánto subió cada suscripción cuando cambiás el monto.",
       "Aviso cuando pasan más de 3 meses sin confirmar un precio.",
       "Las suscripciones anuales se cuentan bien en el gasto mensual."
+  ]},
+  { id: "2026-10-07-donde-verla", items: [
+      "En Series y películas, el botón ¿Dónde la veo? te dice en qué plataformas está en Argentina.",
+      "Si está en una suscripción que ya pagás, te lo marca."
   ]}
 ];
 const CHANGELOG_SEEN_KEY = "agenda_changelog_seen_v1";
