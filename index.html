@@ -2106,7 +2106,7 @@ function renderWhere(){
 
   const chip = (x, extraClass) => {
     const cls = extraClass ? ` class="${extraClass}"` : "";
-    return x.url
+    return (x.url && /^https?:\/\//.test(x.url))
       ? `<a${cls} href="${escapeHtml(x.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(x.name)}</a>`
       : `<span${cls}>${escapeHtml(x.name)}</span>`;
   };
