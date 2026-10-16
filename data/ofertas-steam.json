@@ -1,0 +1,115 @@
+{
+  "actualizado": "2026-10-16T20:45:36.205Z",
+  "ofertas": [
+    {
+      "id": 990080,
+      "nombre": "Hogwarts Legacy",
+      "descuento": 90,
+      "precioOriginal": 3000,
+      "precioFinal": 300,
+      "moneda": "USD",
+      "imagen": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/990080/3f795a6fba1a710110ad16aa80583ecdf42812f4/capsule_616x353.jpg?t=1790708992",
+      "vence": 1792688400,
+      "tipo": "oferta"
+    },
+    {
+      "id": 320795,
+      "nombre": "Batman: Arkham Collection",
+      "descuento": 85,
+      "precioOriginal": 3000,
+      "precioFinal": 450,
+      "moneda": "USD",
+      "imagen": "https://shared.akamai.steamstatic.com/store_item_assets/steam/subs/320795/capsule_616x353.jpg?t=1775683257",
+      "vence": 1792688400,
+      "tipo": "oferta"
+    },
+    {
+      "id": 1174180,
+      "nombre": "Red Dead Redemption 2",
+      "descuento": 75,
+      "precioOriginal": 5999,
+      "precioFinal": 1499,
+      "moneda": "USD",
+      "imagen": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1174180/capsule_616x353.jpg?t=1759502961",
+      "vence": 1792688400,
+      "tipo": "oferta"
+    },
+    {
+      "id": 376282,
+      "nombre": "Halo: The Master Chief Collection",
+      "descuento": 75,
+      "precioOriginal": 3999,
+      "precioFinal": 999,
+      "moneda": "USD",
+      "imagen": "https://shared.akamai.steamstatic.com/store_item_assets/steam/subs/376282/capsule_616x353.jpg?t=1684339836",
+      "vence": 1792429200,
+      "tipo": "oferta"
+    },
+    {
+      "id": 2183900,
+      "nombre": "Warhammer 40,000: Space Marine 2",
+      "descuento": 75,
+      "precioOriginal": 3499,
+      "precioFinal": 874,
+      "moneda": "USD",
+      "imagen": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2183900/f69309c81d7a36fa09a4cb5952c9d09002532f39/capsule_616x353_alt_assets_14_spanish.jpg?t=1790874369",
+      "vence": 1792861200,
+      "tipo": "oferta"
+    },
+    {
+      "id": 1091500,
+      "nombre": "Cyberpunk 2077",
+      "descuento": 70,
+      "precioOriginal": 4499,
+      "precioFinal": 1349,
+      "moneda": "USD",
+      "imagen": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/a757b56d2078be8b09a04e2ad531f1fefafaa129/capsule_616x353.jpg?t=1784714077",
+      "vence": 1793037600,
+      "tipo": "oferta"
+    },
+    {
+      "id": 3768760,
+      "nombre": "007 First Light",
+      "descuento": 40,
+      "precioOriginal": 3999,
+      "precioFinal": 2399,
+      "moneda": "USD",
+      "imagen": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3768760/c8fd64a71c14b826d9b47073c1f89b7497b09ef5/capsule_616x353_alt_assets_4.jpg?t=1791886607",
+      "vence": 1792688400,
+      "tipo": "oferta"
+    },
+    {
+      "id": 2929250,
+      "nombre": "over the hill",
+      "descuento": 20,
+      "precioOriginal": 833,
+      "precioFinal": 666,
+      "moneda": "USD",
+      "imagen": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2929250/c9074a798026361d9c8521ef9a23d6e52c0bea38/capsule_616x353.jpg?t=1792002879",
+      "vence": 1793206836,
+      "tipo": "oferta"
+    },
+    {
+      "id": 4954910,
+      "nombre": "Scam With Your Friends",
+      "descuento": 10,
+      "precioOriginal": 629,
+      "precioFinal": 566,
+      "moneda": "USD",
+      "imagen": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4954910/376ff0c9354de04f0822e0eddad1ac8f53ac5c46/capsule_616x353.jpg?t=1792088818",
+      "vence": 1793293256,
+      "tipo": "oferta"
+    },
+    {
+      "id": 1203620,
+      "nombre": "Enshrouded",
+      "descuento": 10,
+      "precioOriginal": 1999,
+      "precioFinal": 1799,
+      "moneda": "USD",
+      "imagen": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1203620/a8f53c82cb8ee725aeba714d65dce4b81f6ff2a6/capsule_616x353_alt_assets_2.jpg?t=1792078032",
+      "vence": 1793293203,
+      "tipo": "oferta"
+    }
+  ]
+}

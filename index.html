@@ -260,6 +260,37 @@
   .rankCard .stars{font-size:12px;color:#f2b950;margin-top:4px;letter-spacing:1px;}
   .rankPos{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.72);color:#fff;font-size:11px;padding:2px 8px;border-radius:20px;}
 
+  /* ---------- Aplicaciones (ofertas de Steam) ---------- */
+  #appsControls{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+  #appsSearch{flex:1;min-width:180px;}
+  #appsMinDiscount{width:150px;flex-shrink:0;}
+  #appsStatus{font-size:12px;color:var(--muted);margin-bottom:14px;}
+  #appsStatus a{color:var(--accent);}
+  #appsGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:14px;}
+  .offerCard{
+    background:var(--panel2);border:1px solid var(--border);border-radius:12px;
+    overflow:hidden;position:relative;display:flex;flex-direction:column;
+    transition:transform .15s,border-color .15s;
+  }
+  .offerCard:hover{transform:translateY(-3px);border-color:#3a4358;}
+  .offerCard img{width:100%;height:124px;object-fit:cover;display:block;background:#0b0d12;}
+  .offerDiscount{
+    position:absolute;top:8px;right:8px;background:linear-gradient(135deg,#1b5e20,#2e7d32);
+    color:#e8f5e9;font-weight:700;font-size:13px;padding:4px 10px;border-radius:8px;
+  }
+  .offerDailyTag{
+    position:absolute;top:8px;left:8px;background:linear-gradient(135deg,#7a4d00,#a66a1f);
+    color:#ffe9c8;font-weight:600;font-size:10px;padding:4px 9px;border-radius:8px;text-transform:uppercase;letter-spacing:.5px;
+  }
+  .offerCard .info{padding:11px 12px;display:flex;flex-direction:column;gap:5px;flex:1;}
+  .offerCard .title{font-size:13px;line-height:1.35;}
+  .offerCard .prices{display:flex;align-items:baseline;gap:8px;}
+  .offerCard .finalPrice{font-size:15px;font-weight:700;}
+  .offerCard .originalPrice{font-size:11px;color:var(--muted);text-decoration:line-through;}
+  .offerCard .expires{font-size:11px;color:var(--muted);margin-top:auto;}
+  .offerCard .goBtn{text-align:center;text-decoration:none;display:block;}
+  .emptyAppsMsg{color:var(--muted);font-size:13px;padding:10px 0;}
+
   /* ---------- Ventanas ---------- */
   .overlay,#modalOverlay,#payModalOverlay,#goalContribOverlay,#movieModalOverlay{
     display:none;position:fixed;inset:0;background:rgba(5,7,10,.66);
@@ -430,6 +461,7 @@
       <button class="mtab" data-view="view-goals"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg><span>Metas</span></button>
       <button class="mtab" data-view="view-stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V10M12 21V4M19 21v-8"/></svg><span>Estadísticas</span></button>
       <button class="mtab" data-view="view-movies"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 9l5 3-5 3z"/></svg><span>Series y películas</span></button>
+      <button class="mtab" data-view="view-apps"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Aplicaciones</span></button>
       <button class="mtab" data-view="view-visual"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Visual</span></button>
   </nav>
 </div>
@@ -600,6 +632,32 @@
 
     <h2>Tu ranking</h2>
     <div id="rankingGrid"></div>
+  </div>
+
+  <div class="view" id="view-apps">
+    <h2>Aplicaciones</h2>
+
+    <div class="card" style="margin-bottom:18px;">
+      <div style="font-size:14px;font-weight:600;">Ofertas de Steam</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5;">
+        Juegos en oferta (o gratis) en Steam, actualizados automáticamente. Si querés, agregá uno como
+        Suscripción o Recordatorio en tu agenda para no perderlo.
+      </div>
+    </div>
+
+    <div id="appsControls">
+      <input id="appsSearch" type="text" placeholder="Buscar juego por nombre...">
+      <select id="appsMinDiscount">
+        <option value="0">Todos los descuentos</option>
+        <option value="25">25% o más</option>
+        <option value="50">50% o más</option>
+        <option value="75">75% o más</option>
+        <option value="90">90% o más</option>
+      </select>
+      <button id="appsRefreshBtn" type="button">Actualizar</button>
+    </div>
+    <div id="appsStatus"></div>
+    <div id="appsGrid"></div>
   </div>
 
   <div class="view" id="view-visual">
@@ -2575,6 +2633,92 @@ if("serviceWorker" in navigator){
   });
 }
 
+// --- Aplicaciones: ofertas de Steam ---
+// Steam no deja pedirle datos desde el navegador (no manda cabeceras CORS),
+// así que un workflow de GitHub Actions baja las ofertas cada 6 horas y las
+// guarda en data/ofertas-steam.json. Acá solo leemos ese archivo.
+let steamOffers = [];
+let steamUpdated = null;
+
+function normTxt(s){
+  return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+function steamExpiresText(unix){
+  if(!unix) return "";
+  const ms = unix * 1000 - Date.now();
+  if(ms <= 0) return "La oferta ya venció";
+  const hours = ms / 3600000;
+  if(hours < 24) return "Vence en " + Math.max(1, Math.round(hours)) + " h";
+  const days = Math.round(hours / 24);
+  return "Vence en " + days + (days === 1 ? " día" : " días");
+}
+
+async function loadSteamOffers(force){
+  const status = document.getElementById("appsStatus");
+  status.textContent = "Cargando ofertas...";
+  try{
+    const res = await fetch("data/ofertas-steam.json" + (force ? "?t=" + Date.now() : ""), { cache: "no-cache" });
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    steamOffers = Array.isArray(data.ofertas) ? data.ofertas : [];
+    steamUpdated = data.actualizado || null;
+    renderApps();
+  }catch(e){
+    status.textContent = "No se pudieron cargar las ofertas. Revisá tu conexión y probá con Actualizar.";
+    document.getElementById("appsGrid").innerHTML = "";
+  }
+}
+
+function renderApps(){
+  const status = document.getElementById("appsStatus");
+  if(steamUpdated){
+    const d = new Date(steamUpdated);
+    status.textContent = "Actualizado el " +
+      d.toLocaleDateString("es-AR", { day: "numeric", month: "long" }) + " a las " +
+      d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) +
+      " · " + steamOffers.length + " juego(s) en oferta";
+  }
+
+  const search = normTxt(document.getElementById("appsSearch").value.trim());
+  const minDiscount = parseInt(document.getElementById("appsMinDiscount").value, 10) || 0;
+
+  const list = steamOffers
+    .filter(o => o.descuento >= minDiscount && (!search || normTxt(o.nombre).includes(search)))
+    .sort((a, b) => b.descuento - a.descuento);
+
+  const grid = document.getElementById("appsGrid");
+  if(list.length === 0){
+    grid.innerHTML = `<div class="emptyAppsMsg">No hay ofertas que coincidan con tu búsqueda.</div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(o => {
+    const cur = o.moneda === "USD" ? "US$" : (o.moneda ? escapeHtml(o.moneda) + " " : "$");
+    // Steam devuelve los precios en centavos para monedas con decimales (USD, EUR...)
+    const fmt = v => (o.moneda === "USD" || o.moneda === "EUR") ? (v / 100).toFixed(2) : Math.round(v).toLocaleString("es-AR");
+    const free = o.precioFinal <= 0 && o.descuento > 0;
+    const prices = free
+      ? `<span class="finalPrice" style="color:#7ed495;">Gratis</span><span class="originalPrice">${cur}${fmt(o.precioOriginal)}</span>`
+      : `<span class="finalPrice">${cur}${fmt(o.precioFinal)}</span><span class="originalPrice">${cur}${fmt(o.precioOriginal)}</span>`;
+    return `
+      <a class="offerCard" href="https://store.steampowered.com/app/${o.id}/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">
+        ${o.imagen ? `<img src="${escapeHtml(o.imagen)}" alt="" loading="lazy">` : ""}
+        <div class="offerDiscount">-${o.descuento}%</div>
+        ${o.tipo === "oferta del día" ? `<div class="offerDailyTag">Oferta del día</div>` : ""}
+        <div class="info">
+          <div class="title">${escapeHtml(o.nombre)}</div>
+          <div class="prices">${prices}</div>
+          <div class="expires">${escapeHtml(steamExpiresText(o.vence))}</div>
+        </div>
+      </a>`;
+  }).join("");
+}
+
+document.getElementById("appsSearch").addEventListener("input", renderApps);
+document.getElementById("appsMinDiscount").addEventListener("change", renderApps);
+document.getElementById("appsRefreshBtn").addEventListener("click", ()=> loadSteamOffers(true));
+loadSteamOffers();
+
 // --- Novedades de la web ---
 // Cada vez que hagamos un cambio importante, se agrega una entrada NUEVA AL FINAL de esta lista.
 const CHANGELOG = [
@@ -2615,6 +2759,11 @@ const CHANGELOG = [
   { id: "2026-10-07-donde-verla", items: [
       "En Series y películas, el botón ¿Dónde la veo? te dice en qué plataformas está en Argentina.",
       "Si está en una suscripción que ya pagás, te lo marca."
+  ]},
+  { id: "2026-10-16-aplicaciones", items: [
+      "Nueva pestaña Aplicaciones: los juegos en oferta de Steam, con el descuento, el precio y cuándo vence cada oferta.",
+      "Buscá por nombre o filtrá por descuento mínimo. Se actualiza solo, varias veces por día.",
+      "Los proyectos ya viven en GitHub: cada cambio queda guardado y la web se publica desde ahí."
   ]}
 ];
 const CHANGELOG_SEEN_KEY = "agenda_changelog_seen_v1";
