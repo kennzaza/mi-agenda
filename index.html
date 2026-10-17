@@ -447,6 +447,19 @@ form{display:flex;flex-direction:column;gap:10px;}
 }
 
 .offerCard.freeCard{border-color:color-mix(in srgb,var(--c-trial) 55%,var(--border));}
+/* Chip de tienda: dice de qué servicio viene cada oferta (Steam, Epic...). */
+.storeChip{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+.storeChip svg{width:13px;height:13px;flex-shrink:0;}
+.storeChip[data-fuente="steam"] svg{color:#66c0f4;}
+.storeChip[data-fuente="epic"] svg{color:var(--text);}
+/* En papel el azul de Steam queda demasiado claro: se oscurece para que el
+   icono siga leyéndose con el mismo peso que en la noche. */
+:root[data-theme="light"] .storeChip[data-fuente="steam"] svg{color:#1b6f9e;}
+/* "Próximamente": la promo de Epic todavía no arrancó. */
+.offerSoonTag{
+  position:absolute;top:8px;left:8px;background:var(--accent);
+  color:var(--accent-ink);font-weight:600;font-size:10px;padding:4px 9px;border-radius:4px;text-transform:uppercase;letter-spacing:.1em;
+}
 /* Cabecera de seccion/fuente: eyebrow + titulo serif + filete + nota */
 .srcHead{display:flex;flex-direction:column;gap:2px;padding-bottom:9px;border-bottom:1px solid var(--border);margin-bottom:10px;}
 .srcHead .srcTitle{font-family:var(--font-display);font-size:17px;font-weight:600;letter-spacing:-.2px;}
@@ -853,10 +866,10 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
     </div>
 
     <div class="srcHead">
-      <div class="eyebrow">Steam</div>
+      <div class="eyebrow">Steam · Epic</div>
       <div class="srcTitle">Ofertas del día</div>
     </div>
-    <p class="srcNote">Juegos en oferta o gratis, actualizados solos. Los gratis van primero. Con <strong>Agendar</strong> te avisamos un día antes de que termine la oferta.</p>
+    <p class="srcNote">Juegos en oferta o gratis de Steam y Epic, actualizados solos. Los gratis van primero y cada tarjeta dice de qué tienda es. Con <strong>Agendar</strong> te avisamos un día antes de que termine la oferta.</p>
 
     <div id="appsControls">
       <input id="appsSearch" type="text" placeholder="Buscar juego por nombre...">
@@ -3268,49 +3281,102 @@ async function fetchOffers(url, timeoutMs){
   }
 }
 
-async function loadSteamOffers(force){
+// --- Aplicaciones: de qué tienda viene cada oferta ---
+// Iconos oficiales de cada tienda (simple-icons, CC0), en viewBox 24x24 para
+// poder pintarlos con currentColor y que sigan el tema.
+const STORES = {
+  steam: { name: "Steam", viewBox: "0 0 24 24", path: "M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z" },
+  epic: { name: "Epic Games", viewBox: "0 0 24 24", path: "M3.537 0C2.165 0 1.66.506 1.66 1.879V18.44a4.262 4.262 0 00.02.433c.031.3.037.59.316.92.027.033.311.245.311.245.153.075.258.13.43.2l8.335 3.491c.433.199.614.276.928.27h.002c.314.006.495-.071.928-.27l8.335-3.492c.172-.07.277-.124.43-.2 0 0 .284-.211.311-.243.28-.33.285-.621.316-.92a4.261 4.261 0 00.02-.434V1.879c0-1.373-.506-1.88-1.878-1.88zm13.366 3.11h.68c1.138 0 1.688.553 1.688 1.696v1.88h-1.374v-1.8c0-.369-.17-.54-.523-.54h-.235c-.367 0-.537.17-.537.539v5.81c0 .369.17.54.537.54h.262c.353 0 .523-.171.523-.54V8.619h1.373v2.143c0 1.144-.562 1.71-1.7 1.71h-.694c-1.138 0-1.7-.566-1.7-1.71V4.82c0-1.144.562-1.709 1.7-1.709zm-12.186.08h3.114v1.274H6.117v2.603h1.648v1.275H6.117v2.774h1.74v1.275h-3.14zm3.816 0h2.198c1.138 0 1.7.564 1.7 1.708v2.445c0 1.144-.562 1.71-1.7 1.71h-.799v3.338h-1.4zm4.53 0h1.4v9.201h-1.4zm-3.13 1.235v3.392h.575c.354 0 .523-.171.523-.54V4.965c0-.368-.17-.54-.523-.54zm-3.74 10.147a1.708 1.708 0 01.591.108 1.745 1.745 0 01.49.299l-.452.546a1.247 1.247 0 00-.308-.195.91.91 0 00-.363-.068.658.658 0 00-.28.06.703.703 0 00-.224.163.783.783 0 00-.151.243.799.799 0 00-.056.299v.008a.852.852 0 00.056.31.7.7 0 00.157.245.736.736 0 00.238.16.774.774 0 00.303.058.79.79 0 00.445-.116v-.339h-.548v-.565H7.37v1.255a2.019 2.019 0 01-.524.307 1.789 1.789 0 01-.683.123 1.642 1.642 0 01-.602-.107 1.46 1.46 0 01-.478-.3 1.371 1.371 0 01-.318-.455 1.438 1.438 0 01-.115-.58v-.008a1.426 1.426 0 01.113-.57 1.449 1.449 0 01.312-.46 1.418 1.418 0 01.474-.309 1.58 1.58 0 01.598-.111 1.708 1.708 0 01.045 0zm11.963.008a2.006 2.006 0 01.612.094 1.61 1.61 0 01.507.277l-.386.546a1.562 1.562 0 00-.39-.205 1.178 1.178 0 00-.388-.07.347.347 0 00-.208.052.154.154 0 00-.07.127v.008a.158.158 0 00.022.084.198.198 0 00.076.066.831.831 0 00.147.06c.062.02.14.04.236.061a3.389 3.389 0 01.43.122 1.292 1.292 0 01.328.17.678.678 0 01.207.24.739.739 0 01.071.337v.008a.865.865 0 01-.081.382.82.82 0 01-.229.285 1.032 1.032 0 01-.353.18 1.606 1.606 0 01-.46.061 2.16 2.16 0 01-.71-.116 1.718 1.718 0 01-.593-.346l.43-.514c.277.223.578.335.9.335a.457.457 0 00.236-.05.157.157 0 00.082-.142v-.008a.15.15 0 00-.02-.077.204.204 0 00-.073-.066.753.753 0 00-.143-.062 2.45 2.45 0 00-.233-.062 5.036 5.036 0 01-.413-.113 1.26 1.26 0 01-.331-.16.72.72 0 01-.222-.243.73.73 0 01-.082-.36v-.008a.863.863 0 01.074-.359.794.794 0 01.214-.283 1.007 1.007 0 01.34-.185 1.423 1.423 0 01.448-.066 2.006 2.006 0 01.025 0zm-9.358.025h.742l1.183 2.81h-.825l-.203-.499H8.623l-.198.498h-.81zm2.197.02h.814l.663 1.08.663-1.08h.814v2.79h-.766v-1.602l-.711 1.091h-.016l-.707-1.083v1.593h-.754zm3.469 0h2.235v.658h-1.473v.422h1.334v.61h-1.334v.442h1.493v.658h-2.255zm-5.3.897l-.315.793h.624zm-1.145 5.19h8.014l-4.09 1.348z" }
+};
+function storeOf(o){ return STORES[o && o.fuente] || STORES.steam; }
+function storeName(o){ return storeOf(o).name; }
+// Steam no manda url: se arma con el id. Epic sí la manda (su pageSlug).
+function storeUrl(o){ return o.url || ("https://store.steampowered.com/app/" + o.id + "/"); }
+function storeChip(o){
+  const s = storeOf(o);
+  return '<span class="storeChip" data-fuente="' + (o.fuente || "steam") + '" title="' + s.name + '">' +
+    '<svg viewBox="' + s.viewBox + '" aria-hidden="true" fill="currentColor"><path d="' + s.path + '"/></svg>' +
+    s.name + '</span>';
+}
+// Fecha corta tipo "19 oct", para avisar cuándo entra una promo de Epic.
+function fechaCorta(unix){
+  if(!unix) return "";
+  return new Date(unix * 1000).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+}
+
+// Steam: primero el servicio propio (ofertas del día); si falla, la copia
+// local. Nunca lanza: si las dos fallan, devuelve lista vacía y la vista lo dice.
+async function fetchSteamOffers(force){
+  try{
+    const data = await fetchOffers(OFFERS_URL + (force ? "?t=" + Date.now() : ""), 10000);
+    return { ofertas: data.ofertas || [], actualizado: data.actualizado || null, source: "en vivo" };
+  }catch(e){
+    try{
+      const data = await fetchOffers("data/ofertas-steam.json?t=" + Date.now(), 8000);
+      return { ofertas: data.ofertas || [], actualizado: data.actualizado || null, source: "copia guardada" };
+    }catch(e2){
+      return { ofertas: [], actualizado: null, source: "" };
+    }
+  }
+}
+
+// Epic todavía no tiene servicio propio: se lee la copia que vive en el repo
+// (la arma .github/scripts/epic-offers.js). Si el archivo no está, no rompe nada.
+async function fetchEpicOffers(){
+  try{
+    const data = await fetchOffers("data/ofertas-epic.json?t=" + Date.now(), 8000);
+    return data.ofertas || [];
+  }catch(e){
+    return [];
+  }
+}
+
+// Junta las dos tiendas en una sola grilla. Las ofertas viejas de Steam no
+// traen "fuente", así que se asume Steam y sigue funcionando sin tocar datos.
+async function loadOffers(force){
   const status = document.getElementById("appsStatus");
   status.textContent = "Cargando ofertas...";
-  try{
-    // Primero el servicio propio (ofertas del día); si falla, la copia local.
-    let data;
-    try {
-      data = await fetchOffers(OFFERS_URL + (force ? "?t=" + Date.now() : ""), 10000);
-      steamSource = "en vivo";
-    } catch(e) {
-      data = await fetchOffers("data/ofertas-steam.json?t=" + Date.now(), 8000);
-      steamSource = "copia guardada";
-    }
-    steamOffers = data.ofertas;
-    steamUpdated = data.actualizado || null;
-    renderApps();
-  }catch(e){
+  const [steam, epic] = await Promise.all([fetchSteamOffers(force), fetchEpicOffers()]);
+  steamOffers = [...steam.ofertas, ...epic].map(o => Object.assign({}, o, { fuente: o.fuente || "steam" }));
+  steamUpdated = steam.actualizado;
+  steamSource = steam.source;
+  if(steamOffers.length === 0){
     status.textContent = "No se pudieron cargar las ofertas. Revisá tu conexión y probá con Actualizar.";
     document.getElementById("appsGrid").innerHTML = "";
+    return;
   }
+  renderApps();
 }
 
 function renderApps(){
   const status = document.getElementById("appsStatus");
+  const deSteam = steamOffers.filter(o => o.fuente !== "epic").length;
+  const deEpic = steamOffers.length - deSteam;
+  const desglose = deEpic > 0 ? ` (${deSteam} de Steam y ${deEpic} de Epic)` : "";
   if(steamUpdated){
     const d = new Date(steamUpdated);
     status.textContent = "Actualizado el " +
       d.toLocaleDateString("es-AR", { day: "numeric", month: "long" }) + " a las " +
       d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) +
-      " · " + steamOffers.length + " " + (steamOffers.length === 1 ? "juego" : "juegos") + " en oferta" +
+      " · " + steamOffers.length + " " + (steamOffers.length === 1 ? "juego" : "juegos") + " en oferta" + desglose +
       (steamSource === "copia guardada" ? " · sin conexión, mostrando la última copia guardada" : "");
+  }else{
+    status.textContent = steamOffers.length + " " + (steamOffers.length === 1 ? "juego" : "juegos") + " en oferta" + desglose;
   }
 
   const search = normTxt(document.getElementById("appsSearch").value.trim());
   const minDiscount = parseInt(document.getElementById("appsMinDiscount").value, 10) || 0;
 
+  // Orden: lo gratis primero, después las ofertas activas y al final las
+  // próximas; dentro de cada grupo, mayor descuento arriba.
+  const pesoTipo = t => (t === "gratis" ? 0 : t === "próximamente" ? 2 : 1);
   const list = steamOffers
     .filter(o => o.descuento >= minDiscount && (!search || normTxt(o.nombre).includes(search)))
-    .sort((a, b) => b.descuento - a.descuento);
+    .sort((a, b) => (pesoTipo(a.tipo) - pesoTipo(b.tipo)) || (b.descuento - a.descuento));
 
   const grid = document.getElementById("appsGrid");
   if(steamOffers.length === 0){
-    grid.innerHTML = emptyStateHTML("Sin datos", "Todavía no hay ofertas cargadas.", "Tocá Actualizar para buscar las ofertas de hoy en Steam.");
+    grid.innerHTML = emptyStateHTML("Sin datos", "Todavía no hay ofertas cargadas.", "Tocá Actualizar para buscar las ofertas de hoy en Steam y Epic.");
     return;
   }
   if(list.length === 0){
@@ -3320,26 +3386,41 @@ function renderApps(){
 
   grid.innerHTML = list.map(o => {
     const cur = o.moneda === "USD" ? "US$" : (o.moneda ? escapeHtml(o.moneda) + " " : "$");
-    // Steam devuelve los precios en centavos para monedas con decimales (USD, EUR...)
+    // Steam y Epic mandan los precios en centavos para monedas con decimales.
     const fmt = v => (o.moneda === "USD" || o.moneda === "EUR") ? (v / 100).toFixed(2) : Math.round(v).toLocaleString("es-AR");
-    const free = o.tipo === "gratis" || (o.precioFinal <= 0 && o.descuento > 0);
-    const prices = free
+    const esProximo = o.tipo === "próximamente";
+    // "seraGratis" cubre el que ya es gratis y el que lo será con la próxima
+    // promo de Epic; "gratisYa" es solo el que se puede reclamar hoy.
+    const seraGratis = o.precioFinal <= 0 && o.descuento > 0;
+    const gratisYa = !esProximo && (o.tipo === "gratis" || seraGratis);
+    const prices = seraGratis
       ? `<span class="finalPrice" style="color:var(--c-trial);">Gratis</span>` + (o.precioOriginal ? `<span class="originalPrice">${cur}${fmt(o.precioOriginal)}</span>` : "")
       : `<span class="finalPrice">${cur}${fmt(o.precioFinal)}</span><span class="originalPrice">${cur}${fmt(o.precioOriginal)}</span>`;
+    // A la izquierda va el sello (gratis / oferta del día / próximamente) y a
+    // la derecha el descuento, que en los próximos también interesa.
+    const selloIzq = esProximo
+      ? `<div class="offerSoonTag">Próximamente</div>`
+      : gratisYa
+        ? `<div class="offerFree">¡Gratis!</div>`
+        : (o.tipo === "oferta del día" ? `<div class="offerDailyTag">Oferta del día</div>` : "");
+    const selloDer = gratisYa ? "" : `<div class="offerDiscount">-${o.descuento}%</div>`;
+    const cuando = esProximo
+      ? (o.empieza ? "Empieza " + fechaCorta(o.empieza) : "")
+      : steamExpiresText(o.vence);
     return `
-      <div class="offerCard${free ? " freeCard" : ""}">
-        ${free ? `<div class="offerFree">¡Gratis!</div>` : `<div class="offerDiscount">-${o.descuento}%</div>`}
-        ${o.tipo === "oferta del día" ? `<div class="offerDailyTag">Oferta del día</div>` : ""}
-        <a href="https://store.steampowered.com/app/${o.id}/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">
+      <div class="offerCard${seraGratis ? " freeCard" : ""}">
+        ${selloIzq}${selloDer}
+        <a href="${escapeHtml(storeUrl(o))}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">
           ${o.imagen ? `<img src="${escapeHtml(o.imagen)}" alt="" loading="lazy">` : ""}
           <div class="info">
+            ${storeChip(o)}
             <div class="title">${escapeHtml(o.nombre)}</div>
             <div class="prices">${prices}</div>
-            <div class="expires">${escapeHtml(steamExpiresText(o.vence))}</div>
+            <div class="expires">${escapeHtml(cuando)}</div>
           </div>
         </a>
         <div class="offerActions">
-          <button type="button" class="offerRemind" data-id="${o.id}">Agendar</button>
+          <button type="button" class="offerRemind" data-id="${escapeHtml(String(o.id))}">Agendar</button>
         </div>
       </div>`;
   }).join("");
@@ -3356,12 +3437,19 @@ function renderApps(){
 // Crea un evento en la agenda el día ANTES de que termine la oferta,
 // con el nombre del juego y el descuento, para que no se pase de largo.
 function scheduleOfferReminder(o){
-  const title = (o.tipo === "gratis" || o.precioFinal <= 0)
-    ? `${o.nombre} · ¡gratis en Steam!`
-    : `${o.nombre} · ${o.descuento}% off en Steam`;
+  const tienda = storeName(o);
+  const esProximo = o.tipo === "próximamente";
+  const esGratis = o.tipo === "gratis" || o.precioFinal <= 0;
+  const title = esGratis
+    ? (esProximo ? `${o.nombre} · entra gratis en ${tienda}` : `${o.nombre} · ¡gratis en ${tienda}!`)
+    : `${o.nombre} · ${o.descuento}% off en ${tienda}`;
 
   let date = todayStr();
-  if(o.vence){
+  if(esProximo && o.empieza){
+    const start = new Date(o.empieza * 1000);
+    start.setDate(start.getDate() - 1); // se avisa un día antes de que arranque
+    if(localISO(start) > date) date = localISO(start);
+  }else if(o.vence){
     const end = new Date(o.vence * 1000);
     end.setDate(end.getDate() - 1); // se avisa un día antes del fin
     if(localISO(end) > date) date = localISO(end);
@@ -3376,7 +3464,7 @@ function scheduleOfferReminder(o){
     title,
     type: "reminder",
     date,
-    notes: "Oferta de Steam · https://store.steampowered.com/app/" + o.id + "/",
+    notes: "Oferta de " + tienda + " · " + storeUrl(o),
     repeat: "none"
   });
   save();
@@ -3386,8 +3474,8 @@ function scheduleOfferReminder(o){
 
 document.getElementById("appsSearch").addEventListener("input", renderApps);
 document.getElementById("appsMinDiscount").addEventListener("change", renderApps);
-document.getElementById("appsRefreshBtn").addEventListener("click", ()=> loadSteamOffers(true));
-loadSteamOffers();
+document.getElementById("appsRefreshBtn").addEventListener("click", ()=> loadOffers(true));
+loadOffers();
 
 // --- Novedades de la web ---
 // Cada vez que hagamos un cambio importante, se agrega una entrada NUEVA AL FINAL de esta lista.
@@ -3447,6 +3535,11 @@ const CHANGELOG = [
       "Nueva sincronización con GitHub en la pestaña Visual: tu agenda se guarda en un Gist privado de tu cuenta y la usás en el celular y en la compu.",
       "Se conecta una sola vez con un token personal de GitHub; el token nunca sale de tu navegador.",
       "Sincronización automática opcional: sube tus cambios y trae los de otros dispositivos. Si los dos lados cambiaron a la vez, te preguntamos cuál querés usar."
+  ]},
+  { id: "2026-10-17-ofertas-steam-y-epic", items: [
+      "Aplicaciones ya no es solo de Steam: ahora muestra también las ofertas de Epic Games, y cada tarjeta lleva el icono de la tienda que tiene el descuento.",
+      "Los juegos gratis de Epic y los que entrarán gratis la próxima semana aparecen con un cartel Próximamente y la fecha en que empieza.",
+      "Se arregló el botón Agendar, que quedaba desalineado en las tarjetas con títulos largos."
   ]}
 ];
 const CHANGELOG_SEEN_KEY = "agenda_changelog_seen_v1";
