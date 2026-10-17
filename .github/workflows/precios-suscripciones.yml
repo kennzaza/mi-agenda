@@ -35,7 +35,9 @@ jobs:
       - name: Preparar Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # 22 en adelante: el script habla con Chrome por WebSocket, y eso es
+          # global recién desde Node 22 (en 20 habría que instalar una librería).
+          node-version: "22"
 
       - name: Buscar Chrome
         run: |
