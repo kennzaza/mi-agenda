@@ -289,6 +289,16 @@
   .offerCard .originalPrice{font-size:11px;color:var(--muted);text-decoration:line-through;}
   .offerCard .expires{font-size:11px;color:var(--muted);margin-top:auto;}
   .offerCard .goBtn{text-align:center;text-decoration:none;display:block;}
+  .offerActions{display:flex;gap:8px;padding:0 12px 12px;}
+  .offerActions button{flex:1;padding:7px 6px;font-size:12px;border-radius:8px;}
+  .offerFree{
+    position:absolute;top:8px;left:8px;background:linear-gradient(135deg,#1b5e20,#43a047);
+    color:#e8f5e9;font-weight:700;font-size:12px;padding:5px 11px;border-radius:8px;
+    text-transform:uppercase;letter-spacing:.6px;
+    animation:pulseFree 2s ease-in-out infinite;
+  }
+  @keyframes pulseFree{0%,100%{box-shadow:0 0 0 0 rgba(67,160,71,.55);}50%{box-shadow:0 0 0 6px rgba(67,160,71,0);}}
+  .offerCard.freeCard{border-color:color-mix(in srgb,#43a047 55%,var(--border));}
   .emptyAppsMsg{color:var(--muted);font-size:13px;padding:10px 0;}
 
   /* ---------- Ventanas ---------- */
@@ -640,8 +650,8 @@
     <div class="card" style="margin-bottom:18px;">
       <div style="font-size:14px;font-weight:600;">Ofertas de Steam</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5;">
-        Juegos en oferta (o gratis) en Steam, actualizados automáticamente. Si querés, agregá uno como
-        Suscripción o Recordatorio en tu agenda para no perderlo.
+        Juegos en oferta o gratis en Steam, actualizados automáticamente. Los juegos gratis aparecen primero.
+        Con el botón <strong>Agendar</strong> de cada tarjeta te avisamos un día antes de que termine la oferta.
       </div>
     </div>
 
@@ -2721,22 +2731,66 @@ function renderApps(){
     const cur = o.moneda === "USD" ? "US$" : (o.moneda ? escapeHtml(o.moneda) + " " : "$");
     // Steam devuelve los precios en centavos para monedas con decimales (USD, EUR...)
     const fmt = v => (o.moneda === "USD" || o.moneda === "EUR") ? (v / 100).toFixed(2) : Math.round(v).toLocaleString("es-AR");
-    const free = o.precioFinal <= 0 && o.descuento > 0;
+    const free = o.tipo === "gratis" || (o.precioFinal <= 0 && o.descuento > 0);
     const prices = free
-      ? `<span class="finalPrice" style="color:#7ed495;">Gratis</span><span class="originalPrice">${cur}${fmt(o.precioOriginal)}</span>`
+      ? `<span class="finalPrice" style="color:#7ed495;">Gratis</span>` + (o.precioOriginal ? `<span class="originalPrice">${cur}${fmt(o.precioOriginal)}</span>` : "")
       : `<span class="finalPrice">${cur}${fmt(o.precioFinal)}</span><span class="originalPrice">${cur}${fmt(o.precioOriginal)}</span>`;
     return `
-      <a class="offerCard" href="https://store.steampowered.com/app/${o.id}/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">
-        ${o.imagen ? `<img src="${escapeHtml(o.imagen)}" alt="" loading="lazy">` : ""}
-        <div class="offerDiscount">-${o.descuento}%</div>
+      <div class="offerCard${free ? " freeCard" : ""}">
+        ${free ? `<div class="offerFree">¡Gratis!</div>` : `<div class="offerDiscount">-${o.descuento}%</div>`}
         ${o.tipo === "oferta del día" ? `<div class="offerDailyTag">Oferta del día</div>` : ""}
-        <div class="info">
-          <div class="title">${escapeHtml(o.nombre)}</div>
-          <div class="prices">${prices}</div>
-          <div class="expires">${escapeHtml(steamExpiresText(o.vence))}</div>
+        <a href="https://store.steampowered.com/app/${o.id}/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">
+          ${o.imagen ? `<img src="${escapeHtml(o.imagen)}" alt="" loading="lazy">` : ""}
+          <div class="info">
+            <div class="title">${escapeHtml(o.nombre)}</div>
+            <div class="prices">${prices}</div>
+            <div class="expires">${escapeHtml(steamExpiresText(o.vence))}</div>
+          </div>
+        </a>
+        <div class="offerActions">
+          <button type="button" class="offerRemind" data-id="${o.id}">Agendar</button>
         </div>
-      </a>`;
+      </div>`;
   }).join("");
+
+  grid.querySelectorAll(".offerRemind").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const offer = steamOffers.find(x => String(x.id) === btn.dataset.id);
+      if(offer) scheduleOfferReminder(offer);
+    });
+  });
+}
+
+// --- Aplicaciones: agendar una oferta como recordatorio ---
+// Crea un evento en la agenda el día ANTES de que termine la oferta,
+// con el nombre del juego y el descuento, para que no se pase de largo.
+function scheduleOfferReminder(o){
+  const title = (o.tipo === "gratis" || o.precioFinal <= 0)
+    ? `${o.nombre} · ¡gratis en Steam!`
+    : `${o.nombre} · ${o.descuento}% off en Steam`;
+
+  let date = todayStr();
+  if(o.vence){
+    const end = new Date(o.vence * 1000);
+    end.setDate(end.getDate() - 1); // se avisa un día antes del fin
+    if(localISO(end) > date) date = localISO(end);
+  }
+
+  if(items.some(i => i.title === title)){
+    alert(`Ya tenés "${title}" agendado.`);
+    return;
+  }
+  items.push({
+    id: Date.now().toString(),
+    title,
+    type: "reminder",
+    date,
+    notes: "Oferta de Steam · https://store.steampowered.com/app/" + o.id + "/",
+    repeat: "none"
+  });
+  save();
+  render();
+  alert(`Listo. Te vamos a avisar el ${fmtDate(date)}.`);
 }
 
 document.getElementById("appsSearch").addEventListener("input", renderApps);
@@ -2793,6 +2847,10 @@ const CHANGELOG = [
   { id: "2026-10-17-ofertas-en-vivo", items: [
       "Las ofertas de Steam ahora llegan en vivo, sin depender de GitHub: se actualizan solas cada hora.",
       "Si no hay conexión, la pestaña Aplicaciones muestra la última copia guardada."
+  ]},
+  { id: "2026-10-17-gratis-y-agendar", items: [
+      "Los juegos gratis de Steam (y los free weekends) aparecen primero, con un cartel verde de ¡Gratis!.",
+      "Botón Agendar en cada oferta: te arma un recordatorio un día antes de que termine el descuento."
   ]}
 ];
 const CHANGELOG_SEEN_KEY = "agenda_changelog_seen_v1";

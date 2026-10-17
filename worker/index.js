@@ -12,16 +12,21 @@ const CACHE_TTL = 3600; // segundos: 1 hora de ofertas frescas en el borde
 
 function toOffer(item, tipo) {
   if (!item || !item.id || !item.name) return null;
+  const descuento = item.discount_percent || 0;
+  const final = item.final_price || 0;
+  // Un juego con 100% de descuento (o gratis con descuento activo) es un
+  // giveaway o un free weekend: eso va marcado para que la web lo resalte.
+  const esGratis = descuento >= 100 || (final === 0 && descuento > 0);
   return {
     id: item.id,
     nombre: item.name,
-    descuento: item.discount_percent || 0,
+    descuento: descuento,
     precioOriginal: item.original_price || 0,
-    precioFinal: item.final_price || 0,
+    precioFinal: final,
     moneda: item.currency || "",
     imagen: item.large_capsule_image || item.header_image || "",
     vence: item.discount_expiration || 0,
-    tipo: tipo
+    tipo: esGratis ? "gratis" : tipo
   };
 }
 
@@ -41,7 +46,11 @@ function armarOfertas(data) {
       ofertas.push(offer);
     }
   }
-  ofertas.sort((a, b) => b.descuento - a.descuento);
+  ofertas.sort((a, b) => {
+    // Los juegos gratis van primero, después los de mayor descuento.
+    if ((a.tipo === "gratis") !== (b.tipo === "gratis")) return a.tipo === "gratis" ? -1 : 1;
+    return b.descuento - a.descuento;
+  });
   return ofertas;
 }
 

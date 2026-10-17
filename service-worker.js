@@ -2,7 +2,7 @@
 // Guarda los archivos de la web para que abra rápido y también sin internet.
 // No usa IA, no usa claves y no necesita ninguna configuración en Cloudflare.
 
-const CACHE_NAME = "agenda-cache-v4";
+const CACHE_NAME = "agenda-cache-v5";
 const APP_FILES = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png"];
 
 // Instalación: guarda los archivos principales.
