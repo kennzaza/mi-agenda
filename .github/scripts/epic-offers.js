@@ -178,17 +178,36 @@ async function main() {
   const peso = t => (t === "gratis" ? 0 : t === "oferta" ? 1 : 2);
   ofertas.sort((a, b) => (peso(a.tipo) - peso(b.tipo)) || (b.descuento - a.descuento));
 
-  const out = { actualizado: new Date().toISOString(), ofertas };
+  // El sello de "actualizado" solo se mueve si las ofertas cambiaron. Así el
+  // workflow de GitHub no commitea todos los día por una fecha que no significa
+  // nada, y la web no muestra "recién actualizado" cuando nada varió.
   const outDir = path.join(__dirname, "..", "..", "data");
   fs.mkdirSync(outDir, { recursive: true });
   const outFile = path.join(outDir, "ofertas-epic.json");
+  const mismoContenido = (() => {
+    try {
+      const anterior = JSON.parse(fs.readFileSync(outFile, "utf8"));
+      return JSON.stringify(anterior.ofertas || []) === JSON.stringify(ofertas);
+    } catch (e) {
+      return false; // primera vez o archivo ilegible: se considera nuevo
+    }
+  })();
+  let actualizado = new Date().toISOString();
+  if (mismoContenido) {
+    try {
+      actualizado = JSON.parse(fs.readFileSync(outFile, "utf8")).actualizado || actualizado;
+    } catch (e) { /* no pasa nada: se usa la fecha de ahora */ }
+  }
+
+  const out = { actualizado, ofertas };
   fs.writeFileSync(outFile, JSON.stringify(out, null, 2) + "\n", "utf8");
 
   const gratis = ofertas.filter(o => o.tipo === "gratis").length;
   const activas = ofertas.filter(o => o.tipo !== "próximamente").length;
   console.log(
     `Listo: ${ofertas.length} de Epic en ${outFile} ` +
-    `(${gratis} gratis ahora, ${activas} activas, ${proximos} próximas)`
+    `(${gratis} gratis ahora, ${activas} activas, ${proximos} próximas)` +
+    (mismoContenido ? " · sin cambios respecto de lo guardado" : "")
   );
 }
 

@@ -1,0 +1,49 @@
+# Baja las ofertas de Epic Games todos los días y las deja en el repo,
+# para que la agenda las muestre sola, igual que ya hace con Steam.
+#
+# Epic no manda cabeceras CORS, así que el navegador no puede pedirlas
+# directamente: el archivo data/ofertas-epic.json hace de puente. La web
+# solo lo lee.
+#
+# Se dispara solo todos los días, y también se puede lanzar a mano desde
+# la pestaña Actions del repo.
+name: Ofertas de Epic
+
+on:
+  schedule:
+    # 12:25 UTC = 09:25 en Argentina (UTC-3). Se evita la hora en punto
+    # porque GitHub retrasa los trabajos agendados en ese momento.
+    - cron: "25 12 * * *"
+  workflow_dispatch:
+
+# Hace falta permiso de escritura para que el trabajo pueda commitear
+# el archivo actualizado.
+permissions:
+  contents: write
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Traer el repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Generar data/ofertas-epic.json
+        run: node .github/scripts/epic-offers.js
+
+      - name: Guardar si algo cambió
+        run: |
+          if git diff --quiet -- data/ofertas-epic.json; then
+            echo "Sin cambios: las ofertas de Epic siguen igual."
+            exit 0
+          fi
+          git config user.name "agenda-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ofertas-epic.json
+          git commit -m "Ofertas de Epic actualizadas"
+          git push
