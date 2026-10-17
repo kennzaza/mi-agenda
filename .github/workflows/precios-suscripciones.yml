@@ -41,10 +41,10 @@ jobs:
 
       - name: Buscar Chrome
         run: |
-          for c in /usr/bin/google-chrome /usr/bin/google-chrome-stable /usr/bin/chromium-browser /usr/bin/chromium; do
-            if [ -x "$c" ]; then
-              echo "CHROME_PATH=$c" >> "$GITHUB_ENV"
-              echo "Usando Chrome: $c"
+          for c in google-chrome google-chrome-stable chromium chromium-browser; do
+            if ruta="$(command -v "$c" 2>/dev/null)"; then
+              echo "CHROME_PATH=$ruta" >> "$GITHUB_ENV"
+              echo "Usando Chrome: $ruta"
               exit 0
             fi
           done
