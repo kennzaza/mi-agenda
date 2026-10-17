@@ -731,6 +731,30 @@
       <button id="importBtn" type="button">Restaurar desde archivo</button>
       <input id="importFile" type="file" accept=".json,application/json" style="display:none;">
     </div>
+
+    <h2 style="margin-top:28px;">Sincronización con GitHub</h2>
+    <div style="font-size:12px;color:var(--muted);line-height:1.5;">
+      Guardá tu agenda en un Gist privado de tu cuenta de GitHub y usala en todos tus dispositivos. El token se queda solo en este navegador: no se sube al sitio ni a la copia descargada.
+    </div>
+    <div id="syncSetup">
+      <div class="backupRow">
+        <input id="syncTokenInput" type="password" placeholder="Token de GitHub" autocomplete="off" spellcheck="false" style="flex:1;min-width:200px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text);font-size:13px;">
+        <button id="syncConnectBtn" type="button">Conectar</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5;">
+        Creá un token <b>clásico</b> con solo el permiso <b>gist</b> → <a href="https://github.com/settings/tokens/new?scopes=gist&description=Mi+Agenda" target="_blank" rel="noopener" style="color:var(--accent);">Crear token ↗</a>
+      </div>
+    </div>
+    <div id="syncPanel" style="display:none;">
+      <div class="backupRow">
+        <button id="syncNowBtn" type="button">Sincronizar ahora</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;">
+          <input type="checkbox" id="syncAutoChk" style="accent-color:var(--accent);cursor:pointer;"> Automática
+        </label>
+        <button id="syncDisconnectBtn" type="button">Desconectar</button>
+      </div>
+    </div>
+    <div id="syncStatusLine" style="font-size:12px;margin-top:8px;min-height:16px;"></div>
   </div>
 
 
@@ -2461,7 +2485,7 @@ renderRanking();
 // --- Copia de seguridad ---
 document.getElementById("exportBtn").addEventListener("click", ()=>{
   const data = {};
-  Object.keys(localStorage).filter(k => k.startsWith("agenda_")).forEach(k=>{
+  Object.keys(localStorage).filter(k => k.startsWith("agenda_") && !k.startsWith("agenda_sync_")).forEach(k=>{
     data[k] = localStorage.getItem(k);
   });
   const blob = new Blob([JSON.stringify({ app: "agenda", exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" });
@@ -2484,9 +2508,9 @@ document.getElementById("importFile").addEventListener("change", (e)=>{
       const parsed = JSON.parse(reader.result);
       if(!parsed || parsed.app !== "agenda" || typeof parsed.data !== "object") throw new Error("formato");
       if(!confirm("Esto reemplaza todos los datos actuales por los del archivo. ¿Continuar?")) return;
-      Object.keys(localStorage).filter(k => k.startsWith("agenda_")).forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage).filter(k => k.startsWith("agenda_") && !k.startsWith("agenda_sync_")).forEach(k => localStorage.removeItem(k));
       Object.entries(parsed.data).forEach(([k, v])=>{
-        if(k.startsWith("agenda_") && typeof v === "string") localStorage.setItem(k, v);
+        if(k.startsWith("agenda_") && !k.startsWith("agenda_sync_") && typeof v === "string") localStorage.setItem(k, v);
       });
       location.reload();
     }catch(err){
@@ -2496,6 +2520,277 @@ document.getElementById("importFile").addEventListener("change", (e)=>{
   reader.readAsText(file);
   e.target.value = "";
 });
+
+// --- Sincronización con GitHub (Gist privado) ---
+// Guarda todos los datos de la agenda en un Gist privado de la cuenta del usuario.
+// El token NUNCA sale de este navegador (no se sube al Gist ni a la copia descargada).
+const SYNC_TOKEN_KEY = "agenda_sync_token_v1";
+const SYNC_GIST_KEY = "agenda_sync_gist_id_v1";
+const SYNC_AUTO_KEY = "agenda_sync_auto_v1";
+const SYNC_LAST_KEY = "agenda_sync_last_v1";
+const SYNC_SNAPSHOT_KEY = "agenda_sync_snapshot_v1";
+const SYNC_GIST_DESC = "Mi Agenda - copia de seguridad";
+const SYNC_FILE = "mi-agenda.json";
+
+function syncCollectData(){
+  const d = {};
+  Object.keys(localStorage).filter(k => k.startsWith("agenda_") && !k.startsWith("agenda_sync_")).forEach(k=>{
+    d[k] = localStorage.getItem(k);
+  });
+  return d;
+}
+
+function syncSnapshotStr(){
+  const d = syncCollectData();
+  return JSON.stringify(Object.keys(d).sort().map(k => [k, d[k]]));
+}
+
+function syncBuildPayload(){
+  const ua = navigator.userAgent;
+  let device = "Navegador";
+  if(ua.includes("Edg/")) device = "Edge";
+  else if(ua.includes("Firefox/")) device = "Firefox";
+  else if(ua.includes("Chrome/")) device = "Chrome";
+  else if(ua.includes("Safari/")) device = "Safari";
+  return { app: "agenda", updatedAt: new Date().toISOString(), device, data: syncCollectData() };
+}
+
+async function ghApi(path, method, body){
+  const token = localStorage.getItem(SYNC_TOKEN_KEY);
+  const res = await fetch("https://api.github.com" + path, {
+    method: method || "GET",
+    headers: { Authorization: "Bearer " + token, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if(res.status === 204) return null;
+  const txt = await res.text();
+  let json = null;
+  try { json = txt ? JSON.parse(txt) : null; } catch(e) { /* respuesta no JSON */ }
+  if(!res.ok){
+    const err = new Error((json && json.message) || ("HTTP " + res.status));
+    err.status = res.status;
+    throw err;
+  }
+  return json;
+}
+
+async function syncEnsureGist(){
+  let id = localStorage.getItem(SYNC_GIST_KEY);
+  if(id){
+    try { const g = await ghApi("/gists/" + id); if(g && g.id) return g.id; }
+    catch(e){ if(e.status !== 404) throw e; }
+    localStorage.removeItem(SYNC_GIST_KEY);
+  }
+  const gists = await ghApi("/gists?per_page=100");
+  const found = (gists || []).find(g => g.description === SYNC_GIST_DESC && g.files && g.files[SYNC_FILE]);
+  if(found){ localStorage.setItem(SYNC_GIST_KEY, found.id); return found.id; }
+  const payload = syncBuildPayload();
+  const created = await ghApi("/gists", "POST", {
+    description: SYNC_GIST_DESC,
+    public: false,
+    files: { [SYNC_FILE]: { content: JSON.stringify(payload, null, 2) } }
+  });
+  localStorage.setItem(SYNC_GIST_KEY, created.id);
+  // Es una creación desde cero: la nube coincide con este dispositivo.
+  // Usamos el timestamp del servidor para no depender del reloj del navegador.
+  localStorage.setItem(SYNC_SNAPSHOT_KEY, syncSnapshotStr());
+  localStorage.setItem(SYNC_LAST_KEY, created.updated_at || payload.updatedAt);
+  return created.id;
+}
+
+async function syncPushRaw(){
+  const id = await syncEnsureGist();
+  const payload = syncBuildPayload();
+  const res = await ghApi("/gists/" + id, "PATCH", { files: { [SYNC_FILE]: { content: JSON.stringify(payload, null, 2) } } });
+  localStorage.setItem(SYNC_SNAPSHOT_KEY, syncSnapshotStr());
+  localStorage.setItem(SYNC_LAST_KEY, (res && res.updated_at) || payload.updatedAt);
+}
+
+async function syncPullRemote(){
+  const id = await syncEnsureGist();
+  const g = await ghApi("/gists/" + id);
+  const f = g && g.files && g.files[SYNC_FILE];
+  if(!f) return { parsed: null, serverAt: (g && g.updated_at) || "" };
+  let content = f.content;
+  if(f.truncated){
+    const res = await fetch(f.raw_url, { headers: { Authorization: "Bearer " + localStorage.getItem(SYNC_TOKEN_KEY) } });
+    content = await res.text();
+  }
+  let parsed = null;
+  try { parsed = JSON.parse(content); } catch(e){ parsed = null; }
+  // La fecha la tomamos del servidor (g.updated_at), nunca del JSON: así no
+  // dependemos del reloj del navegador, que puede estar adelantado o atrasado.
+  return { parsed, serverAt: g.updated_at || "" };
+}
+
+function syncApplyRemote(remote, serverAt){
+  if(!remote || remote.app !== "agenda" || typeof remote.data !== "object" || !remote.data) return false;
+  // Claves que deben ser listas. Si la nube trae otra forma (dato corrupto o
+  // escrito por otra versión), no la aplicamos: preferimos conservar lo local
+  // antes que dejar la app rota.
+  const MUST_BE_ARRAY = ["agenda_items_v1", "agenda_goals_v1", "agenda_notif_fired_v2"];
+  const skipped = [];
+  // Guardamos lo local antes de borrar, por si hay que conservarlo.
+  const localVals = {};
+  Object.keys(localStorage).filter(k => k.startsWith("agenda_") && !k.startsWith("agenda_sync_")).forEach(k=>{
+    localVals[k] = localStorage.getItem(k);
+  });
+  const entries = Object.entries(remote.data).filter(([k, v])=>{
+    if(!k.startsWith("agenda_") || k.startsWith("agenda_sync_") || typeof v !== "string") return false;
+    if(MUST_BE_ARRAY.includes(k)){
+      let parsed = null;
+      try { parsed = JSON.parse(v); } catch(e) { parsed = undefined; }
+      if(!Array.isArray(parsed)){ skipped.push(k); return false; }
+    }
+    return true;
+  });
+  if(skipped.length) console.warn("Sync: la nube traía claves con formato inválido y se ignoraron:", skipped);
+
+  const before = syncSnapshotStr();
+  Object.keys(localStorage).filter(k => k.startsWith("agenda_") && !k.startsWith("agenda_sync_")).forEach(k => localStorage.removeItem(k));
+  entries.forEach(([k, v])=> localStorage.setItem(k, v));
+  // Las claves que ignoramos por venir corruptas conservan el valor local,
+  // para no perder datos solo porque la nube traiga algo inesperado.
+  skipped.forEach(k=>{
+    const localVal = localVals[k];
+    if(typeof localVal === "string") localStorage.setItem(k, localVal);
+  });
+  const after = syncSnapshotStr();
+  localStorage.setItem(SYNC_SNAPSHOT_KEY, after);
+  localStorage.setItem(SYNC_LAST_KEY, serverAt || remote.updatedAt || new Date().toISOString());
+  return before !== after; // true = había diferencias y hay que recargar
+}
+
+function setSyncStatus(msg, isError){
+  const el = document.getElementById("syncStatusLine");
+  el.textContent = msg || "";
+  el.style.color = isError ? "var(--c-debt)" : "var(--muted)";
+}
+
+function syncLastLabel(){
+  const last = localStorage.getItem(SYNC_LAST_KEY);
+  if(!last) return "nunca";
+  const t = Date.parse(last);
+  if(isNaN(t)) return "nunca";
+  const diff = Date.now() - t;
+  if(diff < 90000) return "hace instantes";
+  const min = Math.round(diff / 60000);
+  if(min < 60) return "hace " + min + " min";
+  const hs = Math.round(min / 60);
+  if(hs < 48) return "hace " + hs + " h";
+  return "el " + new Date(t).toLocaleDateString("es-AR");
+}
+
+let syncBusy = false;
+async function syncNow(manual){
+  if(syncBusy) return;
+  if(!localStorage.getItem(SYNC_TOKEN_KEY)) { if(manual) setSyncStatus("Conectá tu cuenta de GitHub primero.", true); return; }
+  syncBusy = true;
+  if(manual) setSyncStatus("Sincronizando…");
+  try{
+    const savedSnap = localStorage.getItem(SYNC_SNAPSHOT_KEY);
+    const localDirty = syncSnapshotStr() !== savedSnap;
+    const { parsed: remote, serverAt } = await syncPullRemote();
+    const remoteAt = serverAt ? Date.parse(serverAt) : 0;
+    const lastAtRaw = localStorage.getItem(SYNC_LAST_KEY);
+    const lastAt = lastAtRaw ? Date.parse(lastAtRaw) : 0;
+    const remoteNewer = remoteAt > lastAt;
+
+    if(remoteNewer && localDirty){
+      // Los dos lados cambiaron desde la última sincronización.
+      const useCloud = confirm(
+        "Hay una copia más nueva en la nube (" + new Date(remoteAt).toLocaleString("es-AR") + ") y también cambios en este dispositivo.\n\n" +
+        "Aceptar = usar la copia de la nube (se pierden los cambios de este dispositivo)\n" +
+        "Cancelar = subir los cambios de este dispositivo (se sobrescribe la nube)"
+      );
+      if(useCloud){
+        if(syncApplyRemote(remote, serverAt)){ location.reload(); return; }
+        setSyncStatus("Todo al día ✓ (última: " + syncLastLabel() + ")");
+        return;
+      }
+      await syncPushRaw();
+      setSyncStatus("Subido desde este dispositivo ✓");
+    } else if(remoteNewer && !localDirty){
+      if(syncApplyRemote(remote, serverAt)){ location.reload(); return; }
+      setSyncStatus("Todo al día ✓ (última: " + syncLastLabel() + ")");
+    } else if(localDirty || manual){
+      await syncPushRaw();
+      setSyncStatus(manual ? "Sincronizado ✓" : "Subido ✓ (última: " + syncLastLabel() + ")");
+    } else {
+      setSyncStatus("Todo al día ✓ (última: " + syncLastLabel() + ")");
+    }
+  }catch(e){
+    let msg;
+    if(e.status === 401) msg = "El token no es válido. Fijate que sea clásico y tenga el permiso gist.";
+    else if(e.status === 403) msg = "GitHub rechazó el pedido (revisá el token o esperá un rato).";
+    else if(e.status === 404) msg = "No se encontró la copia en la nube.";
+    else msg = "No se pudo sincronizar: " + e.message;
+    setSyncStatus(msg, true);
+  }finally{
+    syncBusy = false;
+  }
+}
+
+function syncRenderUI(){
+  const connected = !!localStorage.getItem(SYNC_TOKEN_KEY);
+  document.getElementById("syncSetup").style.display = connected ? "none" : "";
+  document.getElementById("syncPanel").style.display = connected ? "" : "none";
+  document.getElementById("syncAutoChk").checked = localStorage.getItem(SYNC_AUTO_KEY) === "1";
+}
+
+document.getElementById("syncConnectBtn").addEventListener("click", async ()=>{
+  const token = document.getElementById("syncTokenInput").value.trim();
+  if(!token){ setSyncStatus("Pegá tu token de GitHub primero.", true); return; }
+  localStorage.setItem(SYNC_TOKEN_KEY, token);
+  document.getElementById("syncTokenInput").value = "";
+  try{
+    const user = await ghApi("/user");
+    syncRenderUI();
+    await syncNow(true);
+    setSyncStatus("Conectado como " + user.login + " ✓ (última: " + syncLastLabel() + ")");
+  }catch(e){
+    localStorage.removeItem(SYNC_TOKEN_KEY);
+    syncRenderUI();
+    setSyncStatus(e.status === 401 ? "Ese token no es válido. Creá uno clásico con el permiso gist." : "No se pudo conectar: " + e.message, true);
+  }
+});
+
+document.getElementById("syncNowBtn").addEventListener("click", ()=> syncNow(true));
+
+document.getElementById("syncAutoChk").addEventListener("change", (e)=>{
+  if(e.target.checked){
+    localStorage.setItem(SYNC_AUTO_KEY, "1");
+    syncNow(true);
+  }else{
+    localStorage.removeItem(SYNC_AUTO_KEY);
+    setSyncStatus("Sincronización automática apagada.");
+  }
+});
+
+document.getElementById("syncDisconnectBtn").addEventListener("click", ()=>{
+  if(!confirm("¿Desconectar la sincronización? Tus datos se quedan guardados en este navegador.")) return;
+  [SYNC_TOKEN_KEY, SYNC_GIST_KEY, SYNC_AUTO_KEY, SYNC_LAST_KEY, SYNC_SNAPSHOT_KEY].forEach(k => localStorage.removeItem(k));
+  syncRenderUI();
+  setSyncStatus("Desconectado.");
+});
+
+syncRenderUI();
+setSyncStatus(localStorage.getItem(SYNC_TOKEN_KEY) ? "Conectado · última sincronización: " + syncLastLabel() : "");
+
+// Sincronización automática: sube cuando detecta cambios locales (sin llamadas de red de más),
+// baja al abrir la app y al pasar a otra pestaña/cerrar, para traer cambios de otros dispositivos.
+setInterval(()=>{
+  if(localStorage.getItem(SYNC_AUTO_KEY) !== "1" || !localStorage.getItem(SYNC_TOKEN_KEY)) return;
+  if(syncSnapshotStr() !== localStorage.getItem(SYNC_SNAPSHOT_KEY)) syncNow(false);
+}, 45000);
+
+document.addEventListener("visibilitychange", ()=>{
+  if(document.hidden && localStorage.getItem(SYNC_AUTO_KEY) === "1" && localStorage.getItem(SYNC_TOKEN_KEY)) syncNow(false);
+});
+
+if(localStorage.getItem(SYNC_AUTO_KEY) === "1" && localStorage.getItem(SYNC_TOKEN_KEY)){
+  setTimeout(()=> syncNow(false), 4000);
+}
 
 // --- Clima (detecta ubicación automáticamente; si no se puede, usa Berazategui) ---
 let WEATHER_LAT = -34.7636;
@@ -2851,6 +3146,11 @@ const CHANGELOG = [
   { id: "2026-10-17-gratis-y-agendar", items: [
       "Los juegos gratis de Steam (y los free weekends) aparecen primero, con un cartel verde de ¡Gratis!.",
       "Botón Agendar en cada oferta: te arma un recordatorio un día antes de que termine el descuento."
+  ]},
+  { id: "2026-10-17-sincronizacion-github", items: [
+      "Nueva sincronización con GitHub en la pestaña Visual: tu agenda se guarda en un Gist privado de tu cuenta y la usás en el celular y en la compu.",
+      "Se conecta una sola vez con un token personal de GitHub; el token nunca sale de tu navegador.",
+      "Sincronización automática opcional: sube tus cambios y trae los de otros dispositivos. Si los dos lados cambiaron a la vez, te preguntamos cuál querés usar."
   ]}
 ];
 const CHANGELOG_SEEN_KEY = "agenda_changelog_seen_v1";
