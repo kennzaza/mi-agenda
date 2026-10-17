@@ -572,6 +572,10 @@ form{display:flex;flex-direction:column;gap:10px;}
 #subHistory .row{display:flex;justify-content:space-between;padding:3px 0;}
 #subHistory .change{color:var(--c-subscription);margin-bottom:6px;font-size:13px;}
 #subMsg{font-size:12px;color:var(--c-debt);min-height:16px;margin-top:6px;}
+#priceHint{font-size:11px;color:var(--muted);line-height:1.5;margin:-4px 0 10px;}
+#priceHint::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);margin-right:7px;vertical-align:1px;}
+.chip small.ref{color:var(--accent);}
+.chip.sel small.ref{color:inherit;opacity:.8;}
 .modalBox.wide{width:540px;}
 
 /* ---------- ¿Dónde la veo? ---------- */
@@ -1056,6 +1060,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 
       <label>Lo que te cobran por vez (con impuestos)</label>
       <input id="subPrice" type="number" min="0" step="0.01" placeholder="Ej: 14999" style="margin-bottom:10px;">
+      <div id="priceHint" style="display:none;"></div>
 
       <label>Se cobra</label>
       <select id="subRepeat" style="margin-bottom:10px;">
@@ -2026,6 +2031,28 @@ const SERVICES = [
   {"id": "pedidosya", "name": "PedidosYa Plus", "color": "#FA0050", "icon": "", "letters": "Py", "plans": ["Plus"]}
 ];
 
+// --- Precios de referencia de Argentina -----------------------------------
+// Lo que efectivamente te cobran: precio final con impuestos (IVA, PAIS,
+// Ganancias e IIBB) sobre un pago con Mercado Pago Débito. Están para no
+// tipear el precio a mano; si ya cargaste ese plan alguna vez, manda lo tuyo
+// y la referencia no interviene. Son orientativos y suben seguido, por eso
+// llevan fecha de corte (fuente: impuestito.org, cortada en oct 2026).
+// Ojo con los alias: en HBO Max el tope se llama Platino y en PlayStation Plus
+// figura como Deluxe; se cargó el precio del tope de cada uno.
+const PRICE_REF = {
+  "netflix|Básico": 13768.47, "netflix|Estándar": 22948.47, "netflix|Premium": 30598.47,
+  "disney|Estándar": 19724.36, "disney|Premium": 30345.84,
+  "hbomax|Básico": 11306.70, "hbomax|Estándar": 14672.70, "hbomax|Premium": 17579.70,
+  "prime|Mensual": 9943.47,
+  "crunchyroll|Fan": 7954.47, "crunchyroll|Mega Fan": 9331.47,
+  "youtube|Individual": 6883.47, "youtube|Familiar": 15757.47,
+  "spotify|Individual": 6883.47, "spotify|Duo": 9178.47,
+  "spotify|Familiar": 11626.47, "spotify|Estudiantes": 3517.47,
+  "playstation|Essential": 15159.23, "playstation|Extra": 22748.33,
+  "playstation|Premium": 26542.88
+};
+const PRICE_REF_CORTE = "oct 2026";
+
 // Los planes son los habituales de cada servicio; si el tuyo no está, se elige "Otro plan".
 function serviceById(id){ return SERVICES.find(sv => sv.id === id) || null; }
 
@@ -2238,9 +2265,11 @@ function renderPlanChips(){
   const plans = svc ? svc.plans : [];
   const chips = document.getElementById("planChips");
   chips.innerHTML = plans.map(p => {
-    const saved = svc ? svcPrices[planKey(svc.id, p)] : null;
+    const key = svc ? planKey(svc.id, p) : null;
+    const saved = key ? svcPrices[key] : null;
+    const ref = !saved && key ? PRICE_REF[key] : null;
     const sel = !subState.customPlan && subState.plan === p;
-    return `<button type="button" class="chip${sel ? " sel" : ""}" data-plan="${escapeHtml(p)}">${escapeHtml(p)}${saved ? `<small>${escapeHtml(fmtMoney(saved))}</small>` : ""}</button>`;
+    return `<button type="button" class="chip${sel ? " sel" : ""}" data-plan="${escapeHtml(p)}">${escapeHtml(p)}${saved ? `<small>${escapeHtml(fmtMoney(saved))}</small>` : ref ? `<small class="ref">${escapeHtml(fmtMoney(ref))}</small>` : ""}</button>`;
   }).join("") + `<button type="button" class="chip${subState.customPlan ? " sel" : ""}" data-plan="__custom">Otro plan</button>`;
   document.getElementById("subPlanCustom").style.display = subState.customPlan ? "" : "none";
 
@@ -2252,8 +2281,13 @@ function renderPlanChips(){
       } else {
         subState.customPlan = false;
         subState.plan = c.dataset.plan;
-        const remembered = svc ? svcPrices[planKey(svc.id, subState.plan)] : null;
-        if(remembered && !subState.priceTouched) document.getElementById("subPrice").value = remembered;
+        const key = svc ? planKey(svc.id, subState.plan) : null;
+        const own = key ? svcPrices[key] : null;
+        const remembered = own || (key ? PRICE_REF[key] : null) || null;
+        if(remembered && !subState.priceTouched){
+          document.getElementById("subPrice").value = remembered;
+          setPriceHint(own ? null : PRICE_REF_CORTE);
+        }
       }
       renderPlanChips();
     });
@@ -2288,6 +2322,7 @@ function showSubForm(item){
   document.getElementById("subPrice").value = editing && item.amount ? item.amount : "";
   document.getElementById("subRepeat").value = editing && item.repeat === "yearly" ? "yearly" : "monthly";
   document.getElementById("subDate").value = editing ? item.date : todayStr();
+  setPriceHint(null);
   document.getElementById("subMsg").textContent = "";
 
   document.getElementById("subDelete").style.display = editing ? "" : "none";
@@ -2312,7 +2347,23 @@ function renderSubHistory(item){
       `<div class="row"><span>${escapeHtml(fmtMoney(e.amount))}</span><span>${e.date ? escapeHtml(fmtDate(e.date)) : "antes"}</span></div>`).join("");
 }
 
-document.getElementById("subPrice").addEventListener("input", ()=>{ subState.priceTouched = true; });
+function setPriceHint(corte){
+  const el = document.getElementById("priceHint");
+  if(!corte){ el.style.display = "none"; el.textContent = ""; return; }
+  el.style.display = "";
+  el.textContent = "Precio de referencia · " + corte + " · si te cobran otra cosa, poné la tuya";
+}
+document.getElementById("subPrice").addEventListener("input", ()=>{ subState.priceTouched = true; setPriceHint(null); });
+// La referencia es mensual: si el cobro pasa a ser anual, sacamos ese número
+// del campo en vez de dejarlo cobrando mal. Volvé a tocar el plan y vuelve.
+document.getElementById("subRepeat").addEventListener("change", ()=>{
+  const hint = document.getElementById("priceHint");
+  if(document.getElementById("subRepeat").value === "yearly" && hint.style.display !== "none"){
+    document.getElementById("subPrice").value = "";
+    subState.priceTouched = false;
+    setPriceHint(null);
+  }
+});
 
 function saveSub(){
   const msg = document.getElementById("subMsg");
