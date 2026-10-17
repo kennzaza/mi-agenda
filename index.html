@@ -559,8 +559,8 @@ form{display:flex;flex-direction:column;gap:10px;}
 
 /* ---------- Encabezados de vista (lockup editorial) ---------- */
 .viewHead{margin-bottom:22px;}
-.viewHead .eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);font-weight:600;}
-.viewTitle{font-family:var(--font-display);font-size:30px;font-weight:600;letter-spacing:-.3px;color:var(--text);margin:2px 0 0;display:block;line-height:1.12;}
+.eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);font-weight:600;}
+.viewTitle{text-transform:none;font-family:var(--font-display);font-size:30px;font-weight:600;letter-spacing:-.3px;color:var(--text);margin:2px 0 0;display:block;line-height:1.12;}
 .viewTitle::after{display:none;}
 .viewHead::after{content:"";display:block;height:1px;background:var(--border);margin-top:16px;}
 .viewHead.center{text-align:center;}
@@ -1672,8 +1672,8 @@ function renderSummary(){
   const trialsSoon = items.filter(i => i.type === "trial" && i.date >= tStr && i.date <= localISO(in3days));
   const warnEl = document.getElementById("summaryTrialWarn");
   if(trialsSoon.length > 0){
-    warnEl.innerHTML = `<div class="warnBox"><strong>Atención:</strong> tenés ${trialsSoon.length} período(s) de prueba por vencer en los próximos 3 días — ` +
-      trialsSoon.map(t => `${t.title} (${fmtDate(t.date)})`).join(", ") + `. Cancelalos a tiempo si no los querés pagar.</div>`;
+    warnEl.innerHTML = `<div class="warnBox"><strong>Atención:</strong> tenés ${trialsSoon.length} ${trialsSoon.length === 1 ? "período" : "períodos"} de prueba por vencer en los próximos 3 días — ` +
+      trialsSoon.map(t => `${t.title} (${fmtDate(t.date)})`).join(", ") + `. ${trialsSoon.length === 1 ? "Cancélalo" : "Cancelalos"} a tiempo si no ${trialsSoon.length === 1 ? "lo" : "los"} querés pagar.</div>`;
   } else {
     warnEl.innerHTML = "";
   }
@@ -1684,7 +1684,7 @@ function renderStats(){
   const subs = items.filter(i => i.type === "subscription" && i.amount);
   const subsTotal = subs.reduce((s,i)=> s + monthlyCost(i), 0);
   document.getElementById("statSubsMonthly").textContent = fmtMoney(subsTotal);
-  document.getElementById("statSubsCount").textContent = `${subs.length} suscripción(es) con monto cargado`;
+  document.getElementById("statSubsCount").textContent = `${subs.length} ${subs.length === 1 ? "suscripción" : "suscripciones"} con monto cargado`;
   document.getElementById("statSubsYearly").textContent = "Por año: " + fmtMoney(subsTotal * 12);
 
   const now = new Date();
@@ -3275,7 +3275,7 @@ function renderApps(){
     status.textContent = "Actualizado el " +
       d.toLocaleDateString("es-AR", { day: "numeric", month: "long" }) + " a las " +
       d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) +
-      " · " + steamOffers.length + " juego(s) en oferta" +
+      " · " + steamOffers.length + " " + (steamOffers.length === 1 ? "juego" : "juegos") + " en oferta" +
       (steamSource === "copia guardada" ? " · sin conexión, mostrando la última copia guardada" : "");
   }
 
