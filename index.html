@@ -2635,10 +2635,14 @@ if("serviceWorker" in navigator){
 
 // --- Aplicaciones: ofertas de Steam ---
 // Steam no deja pedirle datos desde el navegador (no manda cabeceras CORS),
-// así que un workflow de GitHub Actions baja las ofertas cada 6 horas y las
-// guarda en data/ofertas-steam.json. Acá solo leemos ese archivo.
+// así que la web le pide las ofertas a un mini-servicio propio en Cloudflare
+// Workers (worker/index.js en este repo), que las toma de Steam y nos las
+// pasa con permisos habilitados. Si eso falla, se usa la copia guardada en
+// data/ofertas-steam.json.
+const OFFERS_URL = "https://mi-agenda-ofertas.torresbraian358.workers.dev/offers";
 let steamOffers = [];
 let steamUpdated = null;
+let steamSource = "";
 
 function normTxt(s){
   return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -2653,14 +2657,34 @@ function steamExpiresText(unix){
   return "Vence en " + days + (days === 1 ? " día" : " días");
 }
 
+async function fetchOffers(url, timeoutMs){
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=> ctrl.abort(), timeoutMs);
+  try{
+    const res = await fetch(url, { cache: "no-cache", signal: ctrl.signal });
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if(!Array.isArray(data.ofertas)) throw new Error("Formato inesperado");
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function loadSteamOffers(force){
   const status = document.getElementById("appsStatus");
   status.textContent = "Cargando ofertas...";
   try{
-    const res = await fetch("data/ofertas-steam.json" + (force ? "?t=" + Date.now() : ""), { cache: "no-cache" });
-    if(!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
-    steamOffers = Array.isArray(data.ofertas) ? data.ofertas : [];
+    // Primero el servicio propio (ofertas del día); si falla, la copia local.
+    let data;
+    try {
+      data = await fetchOffers(OFFERS_URL + (force ? "?t=" + Date.now() : ""), 10000);
+      steamSource = "en vivo";
+    } catch(e) {
+      data = await fetchOffers("data/ofertas-steam.json?t=" + Date.now(), 8000);
+      steamSource = "copia guardada";
+    }
+    steamOffers = data.ofertas;
     steamUpdated = data.actualizado || null;
     renderApps();
   }catch(e){
@@ -2676,7 +2700,8 @@ function renderApps(){
     status.textContent = "Actualizado el " +
       d.toLocaleDateString("es-AR", { day: "numeric", month: "long" }) + " a las " +
       d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) +
-      " · " + steamOffers.length + " juego(s) en oferta";
+      " · " + steamOffers.length + " juego(s) en oferta" +
+      (steamSource === "copia guardada" ? " · sin conexión, mostrando la última copia guardada" : "");
   }
 
   const search = normTxt(document.getElementById("appsSearch").value.trim());
@@ -2762,8 +2787,12 @@ const CHANGELOG = [
   ]},
   { id: "2026-10-16-aplicaciones", items: [
       "Nueva pestaña Aplicaciones: los juegos en oferta de Steam, con el descuento, el precio y cuándo vence cada oferta.",
-      "Buscá por nombre o filtrá por descuento mínimo. Se actualiza solo, varias veces por día.",
+      "Buscá por nombre o filtrá por descuento mínimo. Las ofertas se actualizan solas, varias veces por día.",
       "Los proyectos ya viven en GitHub: cada cambio queda guardado y la web se publica desde ahí."
+  ]},
+  { id: "2026-10-17-ofertas-en-vivo", items: [
+      "Las ofertas de Steam ahora llegan en vivo, sin depender de GitHub: se actualizan solas cada hora.",
+      "Si no hay conexión, la pestaña Aplicaciones muestra la última copia guardada."
   ]}
 ];
 const CHANGELOG_SEEN_KEY = "agenda_changelog_seen_v1";
