@@ -1,0 +1,82 @@
+# Actualiza los precios de referencia de las suscripciones todos los días.
+#
+# El precio que cargaste a mano sigue mandando: esta tabla solo se usa como
+# punto de partida para no tipear el precio la primera vez. Si algún servicio
+# no se puede leer, el trabajo falla y NO se escribe nada — se conserva lo que
+# había, nunca queda un precio inventado en la app.
+#
+# Impuestito renderiza con JavaScript y Cloudflare reta al primero que llega,
+# así que el script usa Chrome headless por CDP. La página a veces no deja
+# pasar al primer intento, por eso se reintenta.
+#
+# Se dispara solo todos los días, y también a mano desde la pestaña Actions.
+name: Precios de suscripciones
+
+on:
+  schedule:
+    # 11:40 UTC = 08:40 en Argentina (UTC-3). Se evita la hora en punto porque
+    # GitHub retrasa los trabajos agendados en ese momento, y también la
+    # franja de las ofertas de Epic (12:25 UTC) para que no compitan.
+    - cron: "40 11 * * *"
+  workflow_dispatch:
+
+# Hace falta permiso de escritura para que el trabajo pueda commitear
+# el archivo actualizado.
+permissions:
+  contents: write
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Traer el repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Buscar Chrome
+        run: |
+          for c in /usr/bin/google-chrome /usr/bin/google-chrome-stable /usr/bin/chromium-browser /usr/bin/chromium; do
+            if [ -x "$c" ]; then
+              echo "CHROME_PATH=$c" >> "$GITHUB_ENV"
+              echo "Usando Chrome: $c"
+              exit 0
+            fi
+          done
+          echo "No hay Chrome en el runner."
+          exit 1
+
+      # La página no siempre deja pasar al primer intento: si falla, se
+      # espera y se vuelve a intentar. Cada corrida escribe todo o nada.
+      - name: Leer los precios
+        run: |
+          for intento in 1 2 3; do
+            if node .github/scripts/precios-suscripciones.js; then
+              exit 0
+            fi
+            echo "Intento $intento falló."
+            if [ "$intento" -lt 3 ]; then
+              echo "Espero 45 segundos y reintento."
+              sleep 45
+            fi
+          done
+          echo "No se pudieron leer los precios después de 3 intentos."
+          echo "No se escribe nada: siguen los precios que ya había."
+          exit 1
+
+      # Solo se commitea si algo cambió de verdad: el script no mueve la fecha
+      # de corte si los precios están igual, así que este diff queda vacío.
+      - name: Guardar si algo cambió
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "Sin cambios: los precios siguen igual."
+            exit 0
+          fi
+          git config user.name "agenda-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Precios de suscripciones actualizados"
+          git push
