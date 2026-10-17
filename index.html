@@ -115,7 +115,7 @@ a{color:var(--accent);text-underline-offset:2px;text-decoration-thickness:1px;}
 ::selection{background:color-mix(in srgb,var(--accent) 42%,transparent);color:var(--accent-ink);}
 
 @media (prefers-reduced-motion:reduce){
-  .view,.modalBox,#movieModalBox,.offerFree{animation:none!important;}
+  .view,.view.active > *,.modalBox,#movieModalBox,.offerFree{animation:none!important;}
   *{transition-duration:.01ms!important;}
   html{scroll-behavior:auto;}
 }
@@ -178,9 +178,17 @@ a{color:var(--accent);text-underline-offset:2px;text-decoration-thickness:1px;}
 
 #main{flex:1;min-width:0;padding:40px 40px 56px;}
 .page{max-width:1040px;margin:0 auto;}
-.view{display:none;animation:fade .3s ease;}
-.view.active{display:block;}
-@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+.view{display:none;}
+.view.active > *{animation:riseIn .44s cubic-bezier(.2,.7,.3,1) both;}
+.view.active > *:nth-child(1){animation-delay:.02s;}
+.view.active > *:nth-child(2){animation-delay:.06s;}
+.view.active > *:nth-child(3){animation-delay:.1s;}
+.view.active > *:nth-child(4){animation-delay:.13s;}
+.view.active > *:nth-child(5){animation-delay:.16s;}
+.view.active > *:nth-child(n+6){animation-delay:.18s;}
+.view.active{display:block;animation:viewFade .18s ease both;}
+@keyframes viewFade{from{opacity:0;}to{opacity:1;}}
+@keyframes riseIn{from{opacity:0;transform:translateY(9px);}to{opacity:1;transform:none;}}
 
 /* ---------- Controles ---------- */
 input,select,textarea{
@@ -343,6 +351,12 @@ form{display:flex;flex-direction:column;gap:10px;}
 .del{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px 8px;border-radius:4px;}
 .del:hover{color:var(--c-debt);background:transparent;}
 .empty-msg{color:var(--muted);font-size:13px;padding:10px 2px;font-style:italic;}
+/* Lockup editorial para estados vacios (sin datos todavia) */
+.emptyState{display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:26px 2px 30px;text-align:left;}
+.emptyState::before{content:"";width:26px;height:1px;background:var(--accent);}
+.emptyState .emptyTitle{font-family:var(--font-display);font-size:21px;font-weight:600;letter-spacing:-.2px;color:var(--text);margin:0;line-height:1.2;}
+.emptyState .emptyHint{font-size:13px;color:var(--muted);line-height:1.6;margin:0;max-width:56ch;}
+#subsList .emptyState,#rankingGrid .emptyState{grid-column:1/-1;}
 
 .progressCard{background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);padding:var(--pad-card);margin-bottom:10px;}
 .progressCard .top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
@@ -1405,7 +1419,7 @@ function renderDebts(){
   let totalPending = 0;
 
   if(debts.length === 0){
-    container.innerHTML = `<div class="empty-msg">No cargaste deudas todavía.</div>`;
+    container.innerHTML = `${emptyStateHTML("Todo al día","Nada pendiente.","Cargá la primer deuda y te ayudo a armar el plan de pago.")}`;
   }
 
   debts.forEach(d=>{
@@ -1495,7 +1509,7 @@ function renderGoals(){
   let totalSaved = 0;
 
   if(goals.length === 0){
-    container.innerHTML = `<div class="empty-msg">Todavía no creaste ninguna meta.</div>`;
+    container.innerHTML = `${emptyStateHTML("Por empezar","Todavía no hay meta.","Poné un objetivo y seguí cuánto falta en cada aporte.")}`;
   }
 
   goals.forEach(g=>{
@@ -1654,7 +1668,7 @@ function renderSummary(){
 
   const listEl = document.getElementById("summaryTodayList");
   if(todayItems.length === 0){
-    listEl.innerHTML = `<div class="empty-msg">No tenés nada agendado para hoy.</div>`;
+    listEl.innerHTML = `${emptyStateHTML("Día libre","Hoy está en blanco.","Sumá un recordatorio con el botón +, o escribí el recuerdo del día.")}`;
   } else {
     listEl.innerHTML = todayItems.map(i => `
       <div class="item type-${i.type}">
@@ -1720,6 +1734,13 @@ function renderStats(){
 }
 
 // --- Inicio: saludo, resumen de la semana y recuerdos ---
+function emptyStateHTML(eyebrow, title, hint){
+  return `<div class="emptyState">` +
+    (eyebrow ? `<div class="eyebrow">${eyebrow}</div>` : ``) +
+    (title ? `<p class="emptyTitle">${title}</p>` : ``) +
+    (hint ? `<p class="emptyHint">${hint}</p>` : ``) +
+    `</div>`;
+}
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
@@ -1768,7 +1789,7 @@ function renderWeek(){
 
   const list = document.getElementById("weekList");
   if(upcoming.length === 0){
-    list.innerHTML = `<div class="empty-msg">No tenés nada agendado para los próximos 7 días.</div>`;
+    list.innerHTML = `${emptyStateHTML("Semana tranquila","No hay nada urgente.","Lo que agendes para los próximos 7 días aparece acá.")}`;
     return;
   }
   const groups = {};
@@ -2065,7 +2086,7 @@ function renderSubs(){
 
   if(subs.length === 0){
     summary.innerHTML = `<span>Todavía no cargaste ninguna.</span>`;
-    box.innerHTML = `<div class="empty-msg" style="grid-column:1/-1;">Agregá tus suscripciones para ver cuánto gastás por mes, cuándo cobran y si las estás usando.</div>`;
+    box.innerHTML = `${emptyStateHTML("Sin servicios","Empezá por la que más usás.","Agregá tus suscripciones para ver cuánto gastás por mes, cuándo cobran y si las estás usando.")}`;
     return;
   }
 
@@ -2653,7 +2674,7 @@ function renderRanking(){
   const grid = document.getElementById("rankingGrid");
   grid.innerHTML = "";
   if(ranking.length === 0){
-    grid.innerHTML = `<div class="empty-msg">Todavía no agregaste nada al ranking.</div>`;
+    grid.innerHTML = `${emptyStateHTML("Por puntuar","Tu ranking está vacío.","Buscá una película o serie arriba y sumala con su puntaje.")}`;
     return;
   }
   const sorted = [...ranking].sort((a,b)=> (b.rating - a.rating) || (b.addedAt - a.addedAt));
