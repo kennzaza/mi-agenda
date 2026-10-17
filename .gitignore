@@ -4,3 +4,6 @@
 # Archivos de sistema
 Thumbs.db
 .DS_Store
+
+# Skills de OpenCode de terceros (~7 MB, se reinstalan desde sus repos)
+.opencode/skills/
