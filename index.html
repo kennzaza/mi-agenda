@@ -3299,7 +3299,7 @@ if(localStorage.getItem(SYNC_AUTO_KEY) === "1" && localStorage.getItem(SYNC_TOKE
   setTimeout(()=> syncNow(false), 4000);
 }
 
-// --- Clima (detecta ubicación automáticamente; si no se puede, usa Berazategui) ---
+// --- Clima (ubicación real del usuario; si no se da permiso, usa Berazategui por defecto) ---
 let WEATHER_LAT = -34.7636;
 let WEATHER_LON = -58.2119;
 
@@ -3319,6 +3319,7 @@ async function reverseGeocodeCity(lat, lon){
 
 function requestBrowserLocation(){
   if(!("geolocation" in navigator)){
+    setWeatherCityLabel("Berazategui (predeterminado)");
     loadWeather();
     return;
   }
@@ -3331,41 +3332,29 @@ function requestBrowserLocation(){
       loadWeather();
     },
     ()=>{
-      // Permiso denegado o error: nos quedamos con Berazategui
+      // Permiso denegado o error: Berazategui por defecto con aviso
+      setWeatherCityLabel("Berazategui (predeterminado)");
       loadWeather();
     },
     { timeout: 8000 }
   );
 }
 
-const LOCATION_PROMPT_KEY = "agenda_location_choice_v1";
 const locationOverlay = document.getElementById("locationOverlay");
 
 function initWeatherLocation(){
-  const choice = localStorage.getItem(LOCATION_PROMPT_KEY);
-
-  if(choice === "accepted"){
-    requestBrowserLocation();
-    return;
-  }
-  if(choice === "declined"){
-    loadWeather();
-    return;
-  }
-
-  // Todavía no eligió: mostramos el cartel una sola vez
+  // Siempre pedimos ubicación al cargar, para que sea la del usuario actual
   locationOverlay.style.display = "flex";
   loadWeather(); // mientras tanto, mostramos Berazategui por defecto
 }
 
 document.getElementById("locationAcceptBtn").addEventListener("click", ()=>{
-  localStorage.setItem(LOCATION_PROMPT_KEY, "accepted");
   locationOverlay.style.display = "none";
   requestBrowserLocation();
 });
 document.getElementById("locationDeclineBtn").addEventListener("click", ()=>{
-  localStorage.setItem(LOCATION_PROMPT_KEY, "declined");
   locationOverlay.style.display = "none";
+  // Ya está Berazategui por defecto, solo cerramos el cartel
 });
 
 const weatherCodes = {
@@ -3761,6 +3750,10 @@ const CHANGELOG = [
       "La agenda ahora se puede instalar como app en tu celular o compu (PWA). Desde el navegador, tocá 'Instalar app' o 'Agregar a pantalla de inicio'.",
       "Funciona sin internet: se guarda en tu dispositivo y abre incluso sin conexión.",
       "Se actualiza sola: cuando hay una nueva versión, se instala automáticamente la próxima vez que entres."
+  ]},
+  { id: "2026-10-19-ubicacion-real", items: [
+      "El clima ahora se muestra según tu ubicación real: al entrar, te pedimos permiso para usar tu ubicación y te mostramos el tiempo de tu ciudad.",
+      "Si no das permiso, se usa Berazategui como ciudad predeterminada y se avisa con el label '(predeterminado)'."
   ]}
 ];
 const CHANGELOG_SEEN_KEY = "agenda_changelog_seen_v1";
