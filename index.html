@@ -961,6 +961,11 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
       <input id="importFile" type="file" accept=".json,application/json" style="display:none;">
     </div>
 
+    <div class="backupRow">
+      <button id="notifyTestBtn" type="button">Probar notificaciones</button>
+      <span id="notifyStatus" style="font-size:11px;color:var(--muted);margin-left:8px;"></span>
+    </div>
+
     <h2 style="margin-top:28px;">Sincronización con GitHub</h2>
     <div style="font-size:12px;color:var(--muted);line-height:1.5;">
       Guardá tu agenda en un Gist privado de tu cuenta de GitHub y usala en todos tus dispositivos. El token se queda solo en este navegador: no se sube al sitio ni a la copia descargada.
@@ -2712,6 +2717,9 @@ document.getElementById("whereBtn").addEventListener("click", fetchWhere);
 rollForwardRecurring();
 render();
 
+// Pedir permiso de notificaciones del navegador al cargar
+requestNotificationPermission().then(updateNotifyStatus);
+
 // --- Visual (personalización de colores) ---
 const VISUAL_KEY = "agenda_visual_colors_v2";
 const DEFAULT_COLORS = {
@@ -3740,6 +3748,11 @@ const CHANGELOG = [
       "Botón ✎ Editar en cada ítem de Próximos y del resumen de Hoy.",
       "Desde el modal de edición podés cambiar el título, la fecha, el monto, la repetición y las notas.",
       "También podés borrar el ítem directamente desde el modal de edición."
+  ]},
+  { id: "2026-10-19-notificaciones", items: [
+      "Notificaciones del navegador: la agenda te avisa cuando se vence una prueba gratuita, una deuda o un recordatorio, aunque no tengas la pestaña abierta.",
+      "Botón 'Probar notificaciones' en la pestaña Personalización para verificar que funcionan.",
+      "Al entrar, se te pedirá permiso para recibir avisos. Se pueden bloquear desde el navegador si no los querés."
   ]}
 ];
 const CHANGELOG_SEEN_KEY = "agenda_changelog_seen_v1";
@@ -3823,6 +3836,81 @@ function formatTimeRemaining(dueDate, now){
   return diffMs <= 0 ? `Venció hace ${duration}` : `Faltan ${duration}`;
 }
 
+// --- Notificaciones del navegador ---
+let notificationPermission = "default"; // "default" | "granted" | "denied"
+
+function requestNotificationPermission(){
+  if(!("Notification" in window)){
+    notificationPermission = "unsupported";
+    updateNotifyStatus();
+    return Promise.resolve("unsupported");
+  }
+  if(Notification.permission === "granted"){
+    notificationPermission = "granted";
+    updateNotifyStatus();
+    return Promise.resolve("granted");
+  }
+  if(Notification.permission === "denied"){
+    notificationPermission = "denied";
+    updateNotifyStatus();
+    return Promise.resolve("denied");
+  }
+  return Notification.requestPermission().then(perm=>{
+    notificationPermission = perm;
+    updateNotifyStatus();
+    return perm;
+  });
+}
+
+function updateNotifyStatus(){
+  const el = document.getElementById("notifyStatus");
+  if(!el) return;
+  if(notificationPermission === "granted"){
+    el.textContent = "Activadas";
+    el.style.color = "var(--c-trial)";
+  } else if(notificationPermission === "denied"){
+    el.textContent = "Bloqueadas";
+    el.style.color = "var(--c-debt)";
+  } else if(notificationPermission === "unsupported"){
+    el.textContent = "No soportadas";
+    el.style.color = "var(--muted)";
+  } else {
+    el.textContent = "Sin permiso";
+    el.style.color = "var(--muted)";
+  }
+}
+
+function sendNotification(title, body){
+  if(notificationPermission !== "granted") return false;
+  const n = new Notification(title, {
+    body: body || "",
+    icon: "icon-192.png",
+    badge: "icon-192.png",
+    tag: "agenda-" + Date.now(),
+    requireInteraction: false,
+    silent: false
+  });
+  setTimeout(()=>{ try{ n.close(); }catch(e){} }, 8000);
+  return true;
+}
+
+function testNotification(){
+  if(notificationPermission === "default" || notificationPermission === "unsupported"){
+    requestNotificationPermission().then(perm=>{
+      if(perm === "granted"){
+        sendNotification("Mi Agenda - Prueba", "¡Las notificaciones funcionan! Te avisaré cuando se venza algo importante.");
+      } else if(perm === "denied"){
+        sendNotification("Mi Agenda", "No se pudieron activar las notificaciones. Revisá la configuración de tu navegador.");
+      }
+    });
+  } else if(notificationPermission === "granted"){
+    sendNotification("Mi Agenda - Prueba", "¡Esta es una notificación de prueba! Todo funciona correctamente.");
+  } else {
+    sendNotification("Mi Agenda", "Las notificaciones están bloqueadas en este navegador.");
+  }
+}
+
+// --- Avisos dentro de la app y notificaciones del navegador ---
 function checkDueAndShowAlerts(){
   const now = new Date();
   const fired = getFiredSet();
@@ -3842,6 +3930,14 @@ function checkDueAndShowAlerts(){
   });
 
   if(pending.length > 0){
+    // Notificaciones nativas del navegador
+    pending.forEach(p => {
+      let body = p.timeText + " · " + typeLabels[p.type];
+      if(p.notes) body += " · " + p.notes;
+      sendNotification("Se vence: " + p.title, body);
+    });
+
+    // Overlay dentro de la app
     const listEl = document.getElementById("inAppAlertsList");
     listEl.innerHTML = pending.map(p => `
       <div class="item type-${p.type}">
@@ -3860,6 +3956,8 @@ function checkDueAndShowAlerts(){
 }
 
 showUpdatesIfAny(checkDueAndShowAlerts);
+
+document.getElementById("notifyTestBtn").addEventListener("click", testNotification);
 </script>
 </body>
 </html>
