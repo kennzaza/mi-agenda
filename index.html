@@ -3428,24 +3428,24 @@ setInterval(updateClock, 1000);
 // ya no se usa para notificaciones en segundo plano.
 // Se actualiza solo: revisa si hay una versión nueva del archivo cada vez que se abre la página,
 // y si la encuentra, la activa automáticamente sin pedirle nada a quien la usa.
-if("serviceWorker" in navigator){
-  window.addEventListener("load", ()=>{
-    navigator.serviceWorker.register("service-worker.js").then((reg)=>{
-      reg.update();
-      reg.addEventListener("updatefound", ()=>{
-        const newWorker = reg.installing;
-        if(!newWorker) return;
-        // Activar la nueva versión de inmediato (SKIP_WAITING)
-        newWorker.postMessage({ type: "SKIP_WAITING" });
-        newWorker.addEventListener("statechange", ()=>{
-          if(newWorker.state === "activated"){
-            window.location.reload();
-          }
-        });
-      });
-    }).catch(()=>{});
-  });
-}
+// TODO: desactivado temporalmente para diagnosticar problema de carga
+// if("serviceWorker" in navigator){
+//   window.addEventListener("load", ()=>{
+//     navigator.serviceWorker.register("service-worker.js").then((reg)=>{
+//       reg.update();
+//       reg.addEventListener("updatefound", ()=>{
+//         const newWorker = reg.installing;
+//         if(!newWorker) return;
+//         newWorker.postMessage({ type: "SKIP_WAITING" });
+//         newWorker.addEventListener("statechange", ()=>{
+//           if(newWorker.state === "activated"){
+//             window.location.reload();
+//           }
+//         });
+//       });
+//     }).catch(()=>{});
+//   });
+// }
 
 // --- Aplicaciones: ofertas de Steam ---
 // Steam no deja pedirle datos desde el navegador (no manda cabeceras CORS),
