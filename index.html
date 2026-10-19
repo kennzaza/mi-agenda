@@ -350,6 +350,8 @@ form{display:flex;flex-direction:column;gap:10px;}
 .repeatTag{font-size:10px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:2px 9px;white-space:nowrap;text-transform:uppercase;letter-spacing:.08em;}
 .del{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px 8px;border-radius:4px;}
 .del:hover{color:var(--c-debt);background:transparent;}
+.edit{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px 8px;border-radius:4px;}
+.edit:hover{color:var(--accent);}
 .empty-msg{color:var(--muted);font-size:13px;padding:10px 2px;font-style:italic;}
 /* Lockup editorial para estados vacios (sin datos todavia) */
 .emptyState{display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:26px 2px 30px;text-align:left;}
@@ -1034,6 +1036,55 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
   </div>
 </div>
 
+<div class="overlay" id="editOverlay">
+  <div class="modalBox">
+    <div class="modalHead">
+      <h3>Editar</h3>
+      <button class="del" id="editClose" type="button" aria-label="Cerrar">✕</button>
+    </div>
+    <form id="editForm">
+      <input id="editId" type="hidden">
+      <label>Título</label>
+      <input id="editTitle" type="text" required>
+
+      <label>Tipo</label>
+      <select id="editType">
+        <option value="reminder">Recordatorio</option>
+        <option value="subscription">Suscripción</option>
+        <option value="debt">Deuda</option>
+        <option value="trial">Período de prueba</option>
+      </select>
+
+      <label id="editDateLabel">Fecha</label>
+      <input id="editDate" type="date" required>
+
+      <div id="editAmountField" style="display:none;">
+        <label id="editAmountLabel">Monto</label>
+        <input id="editAmount" type="number" min="0" step="0.01">
+      </div>
+
+      <div id="editRepeatField">
+        <label>Repetición</label>
+        <select id="editRepeat">
+          <option value="none">No se repite</option>
+          <option value="weekly">Cada semana</option>
+          <option value="monthly">Cada mes</option>
+          <option value="yearly">Cada año</option>
+        </select>
+      </div>
+
+      <label>Notas (opcional)</label>
+      <input id="editNotes" type="text">
+
+      <div class="modalActions">
+        <button type="button" id="editDelete" style="margin-right:auto;background:transparent;color:var(--c-debt);border-color:color-mix(in srgb,var(--c-debt) 45%,var(--border));">Borrar</button>
+        <button type="button" id="editCancel">Cancelar</button>
+        <button type="submit" style="background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600;">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="overlay" id="subOverlay">
   <div class="modalBox wide">
     <div class="modalHead">
@@ -1323,6 +1374,89 @@ function removeItem(id){
   render();
 }
 
+// --- Editar ítem existente ---
+function openEditModal(id){
+  const item = items.find(i => i.id === id);
+  if(!item) return;
+  currentEditId = id;
+  document.getElementById("editId").value = item.id;
+  document.getElementById("editTitle").value = item.title;
+  document.getElementById("editType").value = item.type;
+  document.getElementById("editDate").value = item.date;
+  document.getElementById("editAmount").value = item.amount || "";
+  document.getElementById("editRepeat").value = item.repeat || "none";
+  document.getElementById("editNotes").value = item.notes || "";
+
+  // Mostrar/ocultar campo monto según tipo
+  const showAmount = item.type === "debt" || item.type === "subscription";
+  document.getElementById("editAmountField").style.display = showAmount ? "block" : "none";
+  document.getElementById("editDateLabel").textContent =
+    item.type === "trial" ? "Fecha límite para cancelar" : "Fecha";
+  document.getElementById("editRepeatField").style.display = item.type === "trial" ? "none" : "block";
+  document.getElementById("editDelete").style.display = item.type === "subscription" ? "none" : "inline-block";
+
+  const editOverlay = document.getElementById("editOverlay");
+  editOverlay.classList.add("open");
+  document.getElementById("editTitle").focus();
+}
+
+function closeEditModal(){
+  document.getElementById("editOverlay").classList.remove("open");
+  currentEditId = null;
+}
+
+const editOverlay = document.getElementById("editOverlay");
+const editTypeSel = document.getElementById("editType");
+
+editTypeSel.addEventListener("change", (e)=>{
+  const t = e.target.value;
+  document.getElementById("editAmountField").style.display = (t === "debt" || t === "subscription") ? "block" : "none";
+  document.getElementById("editDateLabel").textContent = t === "trial" ? "Fecha límite para cancelar" : "Fecha";
+  document.getElementById("editRepeatField").style.display = t === "trial" ? "none" : "block";
+  document.getElementById("editDelete").style.display = t === "subscription" ? "none" : "inline-block";
+});
+
+document.getElementById("editClose").addEventListener("click", closeEditModal);
+document.getElementById("editCancel").addEventListener("click", closeEditModal);
+document.getElementById("editDelete").addEventListener("click", ()=>{
+  if(!currentEditId) return;
+  removeItem(currentEditId);
+  closeEditModal();
+});
+document.getElementById("editForm").addEventListener("submit", (e)=>{
+  e.preventDefault();
+  if(!currentEditId) return;
+  const item = items.find(i => i.id === currentEditId);
+  if(!item) return;
+
+  item.title = document.getElementById("editTitle").value.trim();
+  item.type = document.getElementById("editType").value;
+  item.date = document.getElementById("editDate").value;
+  item.notes = document.getElementById("editNotes").value.trim();
+  item.repeat = item.type === "trial" ? "none" : document.getElementById("editRepeat").value;
+
+  if(item.type === "debt"){
+    const amt = parseFloat(document.getElementById("editAmount").value);
+    item.amount = isNaN(amt) || amt < 0 ? 0 : amt;
+    if(!item.payments) item.payments = [];
+  } else if(item.type === "subscription"){
+    const amt = parseFloat(document.getElementById("editAmount").value);
+    item.amount = isNaN(amt) || amt < 0 ? 0 : amt;
+  } else {
+    delete item.amount;
+  }
+
+  save();
+  closeEditModal();
+  render();
+});
+editOverlay.addEventListener("click", (e)=>{
+  if(e.target === editOverlay) closeEditModal();
+});
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "Escape") closeEditModal();
+});
+
 function renderCalendar(){
   const grid = document.getElementById("calGrid");
   grid.innerHTML = "";
@@ -1406,6 +1540,7 @@ function renderList(){
       </div>
       ${repeatBadge}
       <span class="tag ${i.type}">${typeLabels[i.type]}</span>
+      <button class="edit" data-id="${i.id}" title="Editar">✎</button>
       <button class="del" data-id="${i.id}">✕</button>
     `;
     container.appendChild(div);
@@ -1413,6 +1548,9 @@ function renderList(){
 
   container.querySelectorAll(".del").forEach(btn=>{
     btn.addEventListener("click", ()=> removeItem(btn.dataset.id));
+  });
+  container.querySelectorAll(".edit").forEach(btn=>{
+    btn.addEventListener("click", ()=> openEditModal(btn.dataset.id));
   });
 }
 
@@ -1473,6 +1611,7 @@ function renderDebts(){
 }
 
 let currentPayDebtId = null;
+let currentEditId = null;
 const payModalOverlay = document.getElementById("payModalOverlay");
 
 function openPayModal(debtId){
@@ -1696,8 +1835,12 @@ function renderSummary(){
           <div class="meta">${i.notes || ""}</div>
         </div>
         <span class="tag ${i.type}">${typeLabels[i.type]}</span>
+        <button class="edit" data-id="${i.id}" title="Editar">✎</button>
       </div>
     `).join("");
+    listEl.querySelectorAll(".edit").forEach(btn=>{
+      btn.addEventListener("click", ()=> openEditModal(btn.dataset.id));
+    });
   }
 
   // Alerta de pruebas gratis por vencer (próximos 3 días)
