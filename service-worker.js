@@ -1,11 +1,13 @@
 // Service worker de la agenda.
-// Guarda los archivos de la web para que abra rápido y también sin internet.
+// Guarda iconos y archivos estáticos para que la app funcione sin internet.
+// index.html NO se cachea: siempre se descarga fresco del servidor.
 // No usa IA, no usa claves y no necesita ninguna configuración en Cloudflare.
 
-const CACHE_NAME = "agenda-cache-v9";
-const APP_FILES = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png"];
+const CACHE_NAME = "agenda-cache-v10";
+// Solo cacheamos iconos y manifest. index.html se descarga siempre de la red.
+const APP_FILES = ["manifest.json", "icon-192.png", "icon-512.png"];
 
-// Instalación: guarda los archivos principales.
+// Instalación: guarda los archivos estáticos.
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -33,8 +35,9 @@ self.addEventListener("message", (event)=>{
   }
 });
 
-// Pedidos: la página siempre se busca primero en internet (así ves los cambios al recargar)
-// y solo si no hay conexión se usa la copia guardada.
+// Pedidos:
+// - Navegación (index.html): siempre de internet, fallback a caché si no hay red.
+// - Archivos estáticos: de caché primero, actualizan en segundo plano.
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
@@ -51,23 +54,15 @@ self.addEventListener("fetch", (event) => {
   if (isPage) {
     event.respondWith(
       fetch(req)
-        .then((res) => {
-          if (res && res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
-          }
-          return res;
-        })
         .catch(() =>
           caches.match(req)
             .then((cached) => cached || caches.match("index.html"))
-            .then((cached) => cached || caches.match("./"))
         )
     );
     return;
   }
 
-  // Íconos y demás archivos: se muestran desde la copia guardada y se actualizan en segundo plano.
+  // Íconos y demás archivos: caché primero, actualizan en segundo plano.
   event.respondWith(
     caches.match(req).then((cached) => {
       const network = fetch(req)
