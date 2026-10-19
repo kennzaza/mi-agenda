@@ -3435,6 +3435,8 @@ if("serviceWorker" in navigator){
       reg.addEventListener("updatefound", ()=>{
         const newWorker = reg.installing;
         if(!newWorker) return;
+        // Activar la nueva versión de inmediato (SKIP_WAITING)
+        newWorker.postMessage({ type: "SKIP_WAITING" });
         newWorker.addEventListener("statechange", ()=>{
           if(newWorker.state === "activated"){
             window.location.reload();
@@ -3959,27 +3961,6 @@ function checkDueAndShowAlerts(){
     };
   }
 }
-
-// --- Registro del Service Worker (PWA) ---
-if ("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./service-worker.js")
-    .then(()=>{
-      // Si hay una versión nueva esperando, la activamos de inmediato
-      navigator.serviceWorker.ready.then((reg)=>{
-        if(reg.waiting){ reg.waiting.postMessage({ type: "SKIP_WAITING" }); }
-      });
-    })
-    .catch(()=>{}); // si falla, la web sigue funcionando igual
-}
-
-// Escuchar mensaje del SW para recargar cuando hay nueva versión disponible
-let refreshing = false;
-navigator.serviceWorker.addEventListener("controllerchange", ()=>{
-  if(!refreshing){
-    refreshing = true;
-    window.location.reload();
-  }
-});
 
 showUpdatesIfAny(checkDueAndShowAlerts);
 
