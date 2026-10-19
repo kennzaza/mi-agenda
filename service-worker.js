@@ -2,7 +2,7 @@
 // Guarda los archivos de la web para que abra rápido y también sin internet.
 // No usa IA, no usa claves y no necesita ninguna configuración en Cloudflare.
 
-const CACHE_NAME = "agenda-cache-v8";
+const CACHE_NAME = "agenda-cache-v9";
 const APP_FILES = ["./", "index.html", "manifest.json", "icon-192.png", "icon-512.png"];
 
 // Instalación: guarda los archivos principales.
@@ -24,6 +24,13 @@ self.addEventListener("activate", (event) => {
       ))
       .then(() => self.clients.claim())
   );
+});
+
+// Mensajes desde la página: SKIP_WAITING para activar la nueva versión de inmediato.
+self.addEventListener("message", (event)=>{
+  if(event.data && event.data.type === "SKIP_WAITING"){
+    self.skipWaiting();
+  }
 });
 
 // Pedidos: la página siempre se busca primero en internet (así ves los cambios al recargar)

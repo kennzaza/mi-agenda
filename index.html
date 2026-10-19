@@ -3753,6 +3753,11 @@ const CHANGELOG = [
       "Notificaciones del navegador: la agenda te avisa cuando se vence una prueba gratuita, una deuda o un recordatorio, aunque no tengas la pestaña abierta.",
       "Botón 'Probar notificaciones' en la pestaña Personalización para verificar que funcionan.",
       "Al entrar, se te pedirá permiso para recibir avisos. Se pueden bloquear desde el navegador si no los querés."
+  ]},
+  { id: "2026-10-19-pwa-instalable", items: [
+      "La agenda ahora se puede instalar como app en tu celular o compu (PWA). Desde el navegador, tocá 'Instalar app' o 'Agregar a pantalla de inicio'.",
+      "Funciona sin internet: se guarda en tu dispositivo y abre incluso sin conexión.",
+      "Se actualiza sola: cuando hay una nueva versión, se instala automáticamente la próxima vez que entres."
   ]}
 ];
 const CHANGELOG_SEEN_KEY = "agenda_changelog_seen_v1";
@@ -3954,6 +3959,27 @@ function checkDueAndShowAlerts(){
     };
   }
 }
+
+// --- Registro del Service Worker (PWA) ---
+if ("serviceWorker" in navigator){
+  navigator.serviceWorker.register("./service-worker.js")
+    .then(()=>{
+      // Si hay una versión nueva esperando, la activamos de inmediato
+      navigator.serviceWorker.ready.then((reg)=>{
+        if(reg.waiting){ reg.waiting.postMessage({ type: "SKIP_WAITING" }); }
+      });
+    })
+    .catch(()=>{}); // si falla, la web sigue funcionando igual
+}
+
+// Escuchar mensaje del SW para recargar cuando hay nueva versión disponible
+let refreshing = false;
+navigator.serviceWorker.addEventListener("controllerchange", ()=>{
+  if(!refreshing){
+    refreshing = true;
+    window.location.reload();
+  }
+});
 
 showUpdatesIfAny(checkDueAndShowAlerts);
 
